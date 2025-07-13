@@ -4,12 +4,16 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.flick.business.api.dto.request.ProductRequest;
+import com.flick.business.api.dto.response.PageResponse;
 import com.flick.business.api.dto.response.ProductResponse;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
@@ -53,26 +57,48 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> listProducts(String name, Long categoryId, String orderBy) {
+    public PageResponse<ProductResponse> listProducts(String name, Long categoryId, String orderBy, int page,
+            int size) {
 
         if ("mostSold".equalsIgnoreCase(orderBy) || "leastSold".equalsIgnoreCase(orderBy)) {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Product> productPage;
 
+            if ("mostSold".equalsIgnoreCase(orderBy)) {
+                productPage = productRepository.findAllByMostSold(name, categoryId, pageable);
+            } else {
+                productPage = productRepository.findAllByLeastSold(name, categoryId, pageable);
+            }
+
+            return new PageResponse<>(productPage.map(ProductResponse::fromEntity));
         }
 
         Sort sort = createSort(orderBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
         Specification<Product> spec = ProductSpecification.withFilters(name, categoryId);
 
-        List<Product> products = productRepository.findAll(spec, sort);
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
 
-        return products.stream()
-                .map(ProductResponse::fromEntity)
-                .collect(Collectors.toList());
+        return new PageResponse<>(productPage.map(ProductResponse::fromEntity));
+    }
+
+    /**
+     * Finds a Product entity by its ID. This method is intended for internal use
+     * by other services that need the raw entity.
+     * 
+     * @param id The ID of the product to find.
+     * @return The found Product entity.
+     * @throws ResourceNotFoundException if the product is not found.
+     */
+    @Transactional(readOnly = true)
+    public Product findEntityById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
     }
 
     @Transactional(readOnly = true)
     public ProductResponse findById(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+        Product product = findEntityById(id);
         return ProductResponse.fromEntity(product);
     }
 
@@ -121,14 +147,13 @@ public class ProductService {
         if (orderBy == null || orderBy.isBlank()) {
             return Sort.by(Sort.Direction.ASC, "name");
         }
-
         return switch (orderBy) {
-            case "nameDesc" -> Sort.by(Sort.Direction.DESC, "name");
-            case "cheaper" -> Sort.by(Sort.Direction.ASC, "salePrice");
-            case "expensiver" -> Sort.by(Sort.Direction.DESC, "salePrice");
-            case "older" -> Sort.by(Sort.Direction.ASC, "createdAt");
-            case "newer" -> Sort.by(Sort.Direction.DESC, "createdAt");
-            default -> Sort.by(Sort.Direction.ASC, "name");
+            case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
+            case "price_asc" -> Sort.by(Sort.Direction.ASC, "salePrice");
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "salePrice");
+            case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            default -> Sort.by(Sort.Direction.ASC, "name"); // name_asc
         };
     }
 

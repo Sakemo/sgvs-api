@@ -1,8 +1,6 @@
 package com.flick.business.api.controller;
 
 import java.net.URI;
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.flick.business.api.dto.request.ProductRequest;
+import com.flick.business.api.dto.response.PageResponse;
 import com.flick.business.api.dto.response.ProductResponse;
 import com.flick.business.service.ProductService;
 
@@ -38,11 +37,14 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> listProducts(
-            @RequestParam(required = false, name = "name") String name,
-            @RequestParam(required = false, name = "categoryId") Long categoryId,
-            @RequestParam(required = false) String orderBy) {
-        List<ProductResponse> products = productService.listProducts(name, categoryId, orderBy);
+    public ResponseEntity<PageResponse<ProductResponse>> listProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String orderBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        PageResponse<ProductResponse> products = productService.listProducts(name, categoryId, orderBy, page, size);
         return ResponseEntity.ok(products);
     }
 

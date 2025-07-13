@@ -96,9 +96,9 @@ if (! $distributionUrlNameMain -or ($distributionUrlName -eq $distributionUrlNam
 }
 
 # prepare tmp dir
-$TMP_DOWNLOAD_DIR_HOLDER = New-TemporaryFile
-$TMP_DOWNLOAD_DIR = New-Item -Itemtype Directory -Path "$TMP_DOWNLOAD_DIR_HOLDER.dir"
-$TMP_DOWNLOAD_DIR_HOLDER.Delete() | Out-Null
+$TMP_DOWNLOAD_DIR_HcustomerAsc = New-TemporaryFile
+$TMP_DOWNLOAD_DIR = New-Item -Itemtype Directory -Path "$TMP_DOWNLOAD_DIR_HcustomerAsc.dir"
+$TMP_DOWNLOAD_DIR_HcustomerAsc.Delete() | Out-Null
 trap {
   if ($TMP_DOWNLOAD_DIR.Exists) {
     try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }

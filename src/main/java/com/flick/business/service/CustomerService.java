@@ -89,11 +89,11 @@ public class CustomerService {
             return Sort.by(Sort.Direction.ASC, "name");
         }
         return switch (orderBy) {
-            case "nameDesc" -> Sort.by(Sort.Direction.DESC, "name");
-            case "cheaper" -> Sort.by(Sort.Direction.DESC, "debtBalance");
-            case "expensiver" -> Sort.by(Sort.Direction.ASC, "debtBalance");
-            case "newer" -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "older" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
+            case "price_desc" -> Sort.by(Sort.Direction.DESC, "debtBalance");
+            case "price_asc" -> Sort.by(Sort.Direction.ASC, "debtBalance");
+            case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
             default -> Sort.by(Sort.Direction.ASC, "name");
         };
     }
