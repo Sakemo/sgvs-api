@@ -85,7 +85,7 @@ class ProductServiceTest {
         @Test
         @DisplayName("should save a new product when request is valid")
         void save_withValidRequest_shouldSaveAndReturnProduct() {
-            when(categoryService.findById(1L)).thenReturn(category);
+            when(categoryService.findEntityById(1L)).thenReturn(category);
             when(providerService.findById(1L)).thenReturn(provider);
             when(productMapper.toEntity(any(), any(), any())).thenReturn(product);
             when(productRepository.save(any(Product.class))).thenReturn(product);
@@ -100,7 +100,7 @@ class ProductServiceTest {
         @DisplayName("should update an existing product successfully")
         void update_withValidRequest_shouldUpdateProduct() {
             when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-            when(categoryService.findById(1L)).thenReturn(category);
+            when(categoryService.findEntityById(1L)).thenReturn(category);
             when(providerService.findById(1L)).thenReturn(provider);
             when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 

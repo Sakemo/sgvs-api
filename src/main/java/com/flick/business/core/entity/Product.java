@@ -26,7 +26,7 @@ public class Product {
     @Column(length = 300)
     private String description;
 
-    @Column(length = 50, unique = true)
+    @Column(length = 50)
     private String barcode;
 
     @Column(name = "stock_quantity", nullable = false)

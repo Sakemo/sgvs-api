@@ -35,7 +35,7 @@ public class ProductService {
 
     @Transactional
     public ProductResponse save(ProductRequest request) {
-        Category category = categoryService.findById(request.categoryId());
+        Category category = categoryService.findEntityById(request.categoryId());
         Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
 
         Product product = productMapper.toEntity(request, category, provider);
@@ -48,7 +48,7 @@ public class ProductService {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
 
-        Category category = categoryService.findById(request.categoryId());
+        Category category = categoryService.findEntityById(request.categoryId());
         Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
 
         productMapper.updateEntityFromRequest(request, existingProduct, category, provider);
