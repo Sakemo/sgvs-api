@@ -2,6 +2,7 @@ package com.flick.business.api.controller;
 
 import com.flick.business.api.dto.request.ExpenseRequest;
 import com.flick.business.api.dto.response.ExpenseResponse;
+import com.flick.business.api.dto.response.PageResponse;
 import com.flick.business.service.ExpenseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +32,17 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExpenseResponse>> listExpenses(
+    public ResponseEntity<PageResponse<ExpenseResponse>> listExpenses(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String expenseType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
-        List<ExpenseResponse> expenses = expenseService.listAll(name, expenseType, startDate, endDate);
-        return ResponseEntity.ok(expenses);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
+            @RequestParam(defaultValue = "0") int page, // << Adicionar
+            @RequestParam(defaultValue = "10") int size // << Adicionar
+    ) {
+        PageResponse<ExpenseResponse> expensesPage = expenseService.listAll(name, expenseType, startDate, endDate, page,
+                size);
+        return ResponseEntity.ok(expensesPage);
     }
 
     @GetMapping("/{id}")

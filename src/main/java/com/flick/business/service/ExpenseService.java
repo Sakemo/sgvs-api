@@ -2,6 +2,7 @@ package com.flick.business.service;
 
 import com.flick.business.api.dto.request.ExpenseRequest;
 import com.flick.business.api.dto.response.ExpenseResponse;
+import com.flick.business.api.dto.response.PageResponse;
 import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;
@@ -10,6 +11,10 @@ import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.spec.ExpenseSpecification;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -43,15 +48,18 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> listAll(String name, String expenseTypeStr, ZonedDateTime startDate,
-            ZonedDateTime endDate) {
+    public PageResponse<ExpenseResponse> listAll(String name, String expenseTypeStr, ZonedDateTime startDate,
+            ZonedDateTime endDate, int page, int size) {
         ExpenseType expenseType = parseExpenseType(expenseTypeStr);
         Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType);
         Sort sort = Sort.by(Sort.Direction.DESC, "expenseDate");
-        List<Expense> expenses = expenseRepository.findAll(spec, sort);
-        return expenses.stream()
-                .map(ExpenseResponse::fromEntity)
-                .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Expense> expensePage = expenseRepository.findAll(spec, pageable);
+
+        Page<ExpenseResponse> dtoPage = expensePage.map(ExpenseResponse::fromEntity);
+
+        return new PageResponse<>(dtoPage);
     }
 
     @Transactional(readOnly = true)
