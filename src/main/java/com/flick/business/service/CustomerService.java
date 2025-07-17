@@ -32,7 +32,13 @@ public class CustomerService {
     public CustomerResponse save(CustomerRequest request) {
         validateTaxId(request.taxId(), null);
         Customer customer = customerMapper.toEntity(request);
+
+        System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
+
         Customer savedCustomer = customerRepository.save(customer);
+
+        System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
+
         return CustomerResponse.fromEntity(savedCustomer);
     }
 
@@ -40,8 +46,13 @@ public class CustomerService {
     public CustomerResponse update(Long id, CustomerRequest request) {
         Customer existingCustomer = findEntityById(id);
         validateTaxId(request.taxId(), id);
+
+        System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
+
         customerMapper.updateEntityFromRequest(request, existingCustomer);
         Customer updatedCustomer = customerRepository.save(existingCustomer);
+
+        System.out.println("SERVICE: Entity after save. Credit Limit: " + updatedCustomer.getCreditLimit());
         return CustomerResponse.fromEntity(updatedCustomer);
     }
 

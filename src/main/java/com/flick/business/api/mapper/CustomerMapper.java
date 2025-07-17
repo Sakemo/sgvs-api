@@ -26,5 +26,7 @@ public class CustomerMapper {
         customer.setCreditEnabled(request.creditEnabled());
         customer.setCreditLimit(request.creditLimit());
         customer.setActive(request.active());
+
+        System.out.println("SERVICE: Entity before save. Credit Limit: " + customer.getCreditLimit());
     }
 }
