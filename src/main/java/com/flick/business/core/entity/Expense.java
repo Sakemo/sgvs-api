@@ -1,6 +1,8 @@
 package com.flick.business.core.entity;
 
 import com.flick.business.core.enums.ExpenseType;
+import com.flick.business.core.enums.PaymentMethod;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +37,10 @@ public class Expense {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, name = "expense_type", length = 20)
     private ExpenseType expenseType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false)
+    private PaymentMethod paymentMethod;
 
     @Column(length = 500)
     private String description;

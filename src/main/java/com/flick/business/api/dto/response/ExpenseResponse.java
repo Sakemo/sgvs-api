@@ -2,6 +2,8 @@ package com.flick.business.api.dto.response;
 
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;
+import com.flick.business.core.enums.PaymentMethod;
+
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
@@ -11,6 +13,7 @@ public record ExpenseResponse(
         BigDecimal value,
         ZonedDateTime expenseDate,
         ExpenseType expenseType,
+        PaymentMethod paymentMethod,
         String observation,
         ZonedDateTime createdAt,
         ZonedDateTime updatedAt) {
@@ -21,6 +24,7 @@ public record ExpenseResponse(
                 expense.getValue(),
                 expense.getExpenseDate(),
                 expense.getExpenseType(),
+                expense.getPaymentMethod(),
                 expense.getDescription(),
                 expense.getCreatedAt(),
                 expense.getUpdatedAt());

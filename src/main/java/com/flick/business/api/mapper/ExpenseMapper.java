@@ -12,6 +12,7 @@ public class ExpenseMapper {
                 .value(request.value())
                 .expenseDate(request.expenseDate())
                 .expenseType(request.expenseType())
+                .paymentMethod(request.paymentMethod())
                 .description(request.description())
                 .build();
     }
@@ -21,6 +22,7 @@ public class ExpenseMapper {
         expense.setValue(request.value());
         expense.setExpenseDate(request.expenseDate());
         expense.setExpenseType(request.expenseType());
+        expense.setPaymentMethod(request.paymentMethod());
         expense.setDescription(request.description());
     }
 }
