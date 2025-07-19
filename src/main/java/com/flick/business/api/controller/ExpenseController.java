@@ -2,7 +2,7 @@ package com.flick.business.api.controller;
 
 import com.flick.business.api.dto.request.ExpenseRequest;
 import com.flick.business.api.dto.response.ExpenseResponse;
-import com.flick.business.api.dto.response.PageResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.service.ExpenseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,9 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.ZonedDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/expenses")
@@ -37,12 +37,20 @@ public class ExpenseController {
             @RequestParam(required = false) String expenseType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
-            @RequestParam(defaultValue = "0") int page, // << Adicionar
-            @RequestParam(defaultValue = "10") int size // << Adicionar
-    ) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         PageResponse<ExpenseResponse> expensesPage = expenseService.listAll(name, expenseType, startDate, endDate, page,
                 size);
         return ResponseEntity.ok(expensesPage);
+    }
+
+    @GetMapping("/total")
+    public ResponseEntity<BigDecimal> getTotalExpenses(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
+        // Este método precisa ser criado no seu ExpenseService
+        BigDecimal total = expenseService.calculateTotal(startDate, endDate);
+        return ResponseEntity.ok(total);
     }
 
     @GetMapping("/{id}")

@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.flick.business.api.dto.request.ProductRequest;
-import com.flick.business.api.dto.response.PageResponse;
 import com.flick.business.api.dto.response.ProductResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.service.ProductService;
 
 import jakarta.validation.Valid;

@@ -2,6 +2,8 @@ package com.flick.business.api.controller;
 
 import com.flick.business.api.dto.request.SaleRequest;
 import com.flick.business.api.dto.response.SaleResponse;
+import com.flick.business.api.dto.response.common.GroupSummary;
+import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.service.SaleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -43,5 +47,37 @@ public class SaleController {
         Page<SaleResponse> salesPage = saleService.listAll(startDate, endDate, customerId, paymentMethod, productId,
                 orderBy, page, size);
         return ResponseEntity.ok(salesPage);
+    }
+
+    @GetMapping("/gross-total")
+    public ResponseEntity<BigDecimal> getGrossTotal(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) Long productId) {
+        BigDecimal total = saleService.getGrossTotal(startDate, endDate, customerId, paymentMethod, productId);
+        return ResponseEntity.ok(total);
+    }
+
+    @GetMapping("/total-by-payment-method")
+    public ResponseEntity<List<TotalByPaymentMethod>> getTotalsByPaymentMethod(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
+        List<TotalByPaymentMethod> totals = saleService.getTotalByPaymentMethods(startDate, endDate);
+        return ResponseEntity.ok(totals);
+    }
+
+    @GetMapping("/summary-by-group")
+    public ResponseEntity<List<GroupSummary>> getSummaryByGroup(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) Long productId,
+            @RequestParam String groupBy) {
+        List<GroupSummary> summaries = saleService.getSummaryByGroup(startDate, endDate, customerId, paymentMethod,
+                productId, groupBy);
+        return ResponseEntity.ok(summaries);
     }
 }

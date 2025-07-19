@@ -1,4 +1,4 @@
-package com.flick.business.api.dto.response;
+package com.flick.business.api.dto.response.common;
 
 import lombok.Getter;
 import org.springframework.data.domain.Page;

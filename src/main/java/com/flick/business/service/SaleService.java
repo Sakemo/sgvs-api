@@ -2,6 +2,8 @@ package com.flick.business.service;
 
 import com.flick.business.api.dto.request.SaleRequest;
 import com.flick.business.api.dto.response.SaleResponse;
+import com.flick.business.api.dto.response.common.GroupSummary;
+import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.core.entity.Customer;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
@@ -24,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +93,43 @@ public class SaleService {
 
         Page<Sale> salePage = saleRepository.findAll(spec, pageable);
         return salePage.map(SaleResponse::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getGrossTotal(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
+            String paymentMethodStr, Long productId) {
+        PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
+                : null;
+
+        ZonedDateTime effectiveStartDate = (startDate != null)
+                ? startDate
+                : ZonedDateTime.parse("1900-01-01T00:00:00Z");
+
+        ZonedDateTime effectiveEndDate = (endDate != null)
+                ? endDate
+                : ZonedDateTime.parse("9999-12-31T23:59:59Z");
+
+        return saleRepository.getGrossTotalWithFilters(
+                effectiveStartDate,
+                effectiveEndDate,
+                customerId,
+                paymentMethod,
+                productId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TotalByPaymentMethod> getTotalByPaymentMethods(ZonedDateTime startDate, ZonedDateTime endDate) {
+        List<Object[]> results = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate, endDate);
+
+        return results.stream()
+                .map(res -> new TotalByPaymentMethod((PaymentMethod) res[0], (BigDecimal) res[1]))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupSummary> getSummaryByGroup(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
+            String paymentMethodStr, Long productId, String groupBy) {
+        return Collections.emptyList();
     }
 
     private Customer validateAndGetCustomer(SaleRequest request) {

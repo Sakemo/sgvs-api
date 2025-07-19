@@ -2,7 +2,7 @@ package com.flick.business.service;
 
 import com.flick.business.api.dto.request.ExpenseRequest;
 import com.flick.business.api.dto.response.ExpenseResponse;
-import com.flick.business.api.dto.response.PageResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;
@@ -60,6 +60,19 @@ public class ExpenseService {
         Page<ExpenseResponse> dtoPage = expensePage.map(ExpenseResponse::fromEntity);
 
         return new PageResponse<>(dtoPage);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal calculateTotal(ZonedDateTime startDate, ZonedDateTime endDate) {
+        ZonedDateTime effectiveStartDate = (startDate != null)
+                ? startDate
+                : ZonedDateTime.parse("1900-01-01T00:00:00Z");
+
+        ZonedDateTime effectiveEndDate = (endDate != null)
+                ? endDate
+                : ZonedDateTime.parse("9999-12-31T23:59:59Z");
+
+        return expenseRepository.sumTotalValueBetweenDates(effectiveStartDate, effectiveEndDate);
     }
 
     @Transactional(readOnly = true)
