@@ -15,6 +15,7 @@ public class ProductMapper {
                 .description(request.description())
                 .barcode(request.barcode())
                 .active(request.active())
+                .manageStock(request.managesStock())
                 .salePrice(request.salePrice())
                 .costPrice(request.costPrice())
                 .stockQuantity(request.stockQuantity())
@@ -29,6 +30,7 @@ public class ProductMapper {
         product.setDescription(request.description());
         product.setBarcode(request.barcode());
         product.setActive(request.active());
+        product.setManageStock(request.managesStock());
         product.setSalePrice(request.salePrice());
         product.setCostPrice(request.costPrice());
         product.setStockQuantity(request.stockQuantity());

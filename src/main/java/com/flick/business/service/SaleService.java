@@ -5,10 +5,12 @@ import com.flick.business.api.dto.response.SaleResponse;
 import com.flick.business.api.dto.response.common.GroupSummary;
 import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.core.entity.Customer;
+import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.entity.SaleItem;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.ProductRepository;
@@ -26,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,9 +41,13 @@ public class SaleService {
     private final CustomerService customerService;
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
+    private final GeneralSettingsService settingsService;
 
     @Transactional
     public SaleResponse registerSale(SaleRequest request) {
+        GeneralSettings settings = settingsService.findEntity();
+        StockControlType stockControl = settings.getStockControlType();
+
         Sale newSale = new Sale();
         newSale.setPaymentMethod(request.paymentMethod());
         newSale.setDescription(request.description());
@@ -57,8 +62,12 @@ public class SaleService {
             Product product = productService.findEntityById(itemRequest.productId());
             validateStock(product, itemRequest.quantity());
 
-            product.setStockQuantity(product.getStockQuantity().subtract(itemRequest.quantity()));
-            productsToUpdate.add(product);
+            boolean isStockManagedForItem = isStockManaged(product, stockControl);
+
+            if (isStockManagedForItem) {
+                validateAndDecrementStock(product, itemRequest.quantity());
+                productsToUpdate.add(product);
+            }
 
             SaleItem saleItem = SaleItem.builder()
                     .product(product)
@@ -71,13 +80,31 @@ public class SaleService {
         }
 
         newSale.setTotalValue(totalValue);
-
         updateCustomerDebt(customer, newSale);
 
-        productRepository.saveAll(productsToUpdate);
+        if (!productsToUpdate.isEmpty()) {
+            productRepository.saveAll(productsToUpdate);
+        }
         Sale savedSale = saleRepository.save(newSale);
 
         return SaleResponse.fromEntity(savedSale);
+    }
+
+    private boolean isStockManaged(Product product, StockControlType stockControl) {
+        return switch (stockControl) {
+            case GLOBAL -> true;
+            case PER_ITEM -> product.isManageStock();
+            case NONE -> false;
+        };
+    }
+
+    private void validateAndDecrementStock(Product product, BigDecimal requestedQuantity) {
+        if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
+            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Avaible: "
+                    + product.getStockQuantity() + ", Requested: " + requestedQuantity);
+        }
+
+        product.setStockQuantity(product.getStockQuantity().subtract(requestedQuantity));
     }
 
     @Transactional(readOnly = true)

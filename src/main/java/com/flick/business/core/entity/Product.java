@@ -42,6 +42,10 @@ public class Product {
     @Column(name = "unit_of_sale", nullable = false)
     private UnitOfSale unitOfSale;
 
+    @Column(name = "manages_stock", nullable = false)
+    @Builder.Default
+    private boolean manageStock = true;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;

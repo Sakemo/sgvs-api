@@ -4,9 +4,11 @@ import com.flick.business.api.dto.request.SaleItemRequest;
 import com.flick.business.api.dto.request.SaleRequest;
 import com.flick.business.api.dto.response.SaleResponse;
 import com.flick.business.core.entity.Customer;
+import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
@@ -27,7 +29,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,12 +47,16 @@ class SaleServiceTest {
     @Mock
     private CustomerService customerService;
 
+    @Mock
+    private GeneralSettingsService settingsService;
+
     @InjectMocks
     private SaleService saleService;
 
     private Product product1;
     private Customer onCreditCustomer;
     private Customer cashCustomer;
+    private GeneralSettings generalSettings;
 
     @BeforeEach
     void setUp() {
@@ -74,11 +80,33 @@ class SaleServiceTest {
                 .name("Cash Customer")
                 .creditEnabled(false)
                 .build();
+
+        generalSettings = new GeneralSettings();
+        generalSettings.setId(1L);
+        generalSettings.setStockControlType(StockControlType.GLOBAL);
+        when(settingsService.findEntity()).thenReturn(generalSettings);
     }
 
     @Nested
     @DisplayName("Sale Registration Scenarios")
     class RegisterSale {
+
+        @Test
+        @DisplayName("should not decrement stock when global stock controls is NONE")
+        void registerSale_whenStockControlIsNone_shouldNotUpdateStock() {
+            generalSettings.setStockControlType(StockControlType.NONE);
+
+            SaleItemRequest itemRequest = new SaleItemRequest(1L, new BigDecimal("5"));
+            SaleRequest saleRequest = new SaleRequest(null, PaymentMethod.CASH, "", List.of(itemRequest));
+
+            when(productService.findEntityById(1L)).thenReturn(product1);
+            when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            saleService.registerSale(saleRequest);
+
+            verify(productRepository, never()).saveAll(anyList());
+            assertThat(product1.getStockQuantity()).isEqualByComparingTo("100");
+        }
 
         @Test
         @DisplayName("should register an ON_CREDIT sale successfully")

@@ -3,9 +3,11 @@ package com.flick.business.service;
 import com.flick.business.api.dto.request.ProductRequest;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
+import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;
 import com.flick.business.core.enums.UnitOfSale;
+import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,8 +32,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,9 +75,9 @@ class ProductServiceTest {
 
         product = Product.builder().id(1L).name("Original Soda").description("A classic soda")
                 .salePrice(new BigDecimal("5.00")).stockQuantity(new BigDecimal("100")).unitOfSale(UnitOfSale.UNIT)
-                .category(category).provider(provider).active(true).build();
+                .category(category).provider(provider).active(true).manageStock(true).build();
         productRequest = new ProductRequest("New Soda", "New description", "123456", new BigDecimal("200"),
-                new BigDecimal("7.50"), new BigDecimal("3.00"), UnitOfSale.UNIT, true, 1L, 1L);
+                new BigDecimal("7.50"), new BigDecimal("3.00"), UnitOfSale.UNIT, true, true, 1L, 1L);
     }
 
     @Nested
@@ -93,7 +94,10 @@ class ProductServiceTest {
             productService.save(productRequest);
 
             verify(productRepository).save(productArgumentCaptor.capture());
-            assertThat(productArgumentCaptor.getValue().getCategory().getName()).isEqualTo("Beverages");
+            Product capturedProduct = productArgumentCaptor.getValue();
+
+            assertThat(capturedProduct.getCategory().getName()).isEqualTo("Beverages");
+            assertThat(capturedProduct.isManageStock()).isTrue();
         }
 
         @Test
