@@ -60,7 +60,6 @@ public class SaleService {
 
         for (var itemRequest : request.items()) {
             Product product = productService.findEntityById(itemRequest.productId());
-            validateStock(product, itemRequest.quantity());
 
             boolean isStockManagedForItem = isStockManaged(product, stockControl);
 
