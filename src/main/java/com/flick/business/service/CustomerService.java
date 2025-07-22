@@ -18,6 +18,7 @@ import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
+import com.flick.business.repository.SaleRepository;
 import com.flick.business.repository.spec.CustomerSpecification;
 
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class CustomerService {
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
+    private final SaleRepository saleRepository;
 
     @Transactional
     public CustomerResponse save(CustomerRequest request) {
@@ -40,6 +42,22 @@ public class CustomerService {
         System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
 
         return CustomerResponse.fromEntity(savedCustomer);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CustomerResponse> getSuggestions() {
+        List<Long> topIds = saleRepository.findTop3MostFrequentCustomerIds();
+
+        List<Customer> customers;
+        if (!topIds.isEmpty()) {
+            customers = customerRepository.findAllById(topIds);
+        } else {
+            customers = customerRepository.findTop3ByActiveTrueOrderByNameAsc();
+        }
+
+        return customers.stream()
+                .map(CustomerResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional

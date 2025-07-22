@@ -45,6 +45,11 @@ public class CustomerController {
         return ResponseEntity.ok(customer);
     }
 
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<CustomerResponse>> getCustomerSuggestions() {
+        return ResponseEntity.ok(customerService.getSuggestions());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,

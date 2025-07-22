@@ -56,4 +56,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
                         "GROUP BY s.customer.id, s.customer.name")
         List<Object[]> sumTotalGroupByCustomer(@Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate);
+
+        @Query("SELECT s.customer.id FROM Sale s WHERE s.customer IS NOT NULL GROUP BY s.customer.id ORDER BY COUNT(s.id) DESC LIMIT 3")
+        List<Long> findTop3MostFrequentCustomerIds();
 }
