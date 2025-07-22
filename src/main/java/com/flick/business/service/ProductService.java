@@ -21,6 +21,7 @@ import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProductRepository;
+import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.spec.ProductSpecification;
 
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,23 @@ public class ProductService {
     private final ProductMapper productMapper;
     private final CategoryService categoryService;
     private final ProviderService providerService;
+    private final SaleItemRepository saleItemRepository;
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getSuggestions() {
+        List<Long> topIds = saleItemRepository.findTop3MostSoldProductIds();
+
+        List<Product> products;
+        if (!topIds.isEmpty()) {
+            products = productRepository.findAllById(topIds);
+        } else {
+            products = productRepository.findTop3ByActiveTrueOrderByNameAsc();
+        }
+
+        return products.stream()
+                .map(ProductResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
 
     @Transactional
     public ProductResponse save(ProductRequest request) {

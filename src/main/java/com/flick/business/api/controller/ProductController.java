@@ -1,6 +1,8 @@
 package com.flick.business.api.controller;
 
 import java.net.URI;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,6 +55,11 @@ public class ProductController {
     public ResponseEntity<ProductResponse> findProductById(@PathVariable Long id) {
         ProductResponse product = productService.findById(id);
         return ResponseEntity.ok(product);
+    }
+
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<ProductResponse>> getProductSuggestions() {
+        return ResponseEntity.ok(productService.getSuggestions());
     }
 
     @PutMapping("/{id}")
