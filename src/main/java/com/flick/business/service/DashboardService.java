@@ -16,7 +16,6 @@ import com.flick.business.api.dto.response.common.ChartDataPoint;
 import com.flick.business.api.dto.response.common.MetricCardData;
 import com.flick.business.api.dto.response.common.TimeSeriesDataPoint;
 import com.flick.business.core.enums.PaymentMethod;
-import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.SaleRepository;
@@ -29,7 +28,6 @@ public class DashboardService {
     private final SaleRepository saleRepository;
     private final ExpenseRepository expenseRepository;
     private final SaleItemRepository saleItemRepository;
-    private final CustomerRepository customerRepository;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboardSummary(ZonedDateTime startDate, ZonedDateTime endDate) {
@@ -47,7 +45,6 @@ public class DashboardService {
         List<Object[]> salesByPaymentMethodRaw = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate, endDate);
         List<Object[]> topSellingProductsRaw = saleItemRepository.findTop5SellingProductsByRevenue(startDate, endDate);
         List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate);
-        List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate);
 
         MetricCardData grossRevenueCard = buildMetricCard(currentGrossRevenue, previousGrossRevenue);
         MetricCardData totalExpensesCard = buildMetricCard(currentTotalExpenses, previousTotalExpenses);
@@ -79,7 +76,6 @@ public class DashboardService {
 
     private MetricCardData buildMetricCard(BigDecimal currentValue, BigDecimal previousValue) {
         BigDecimal percentageChange = calculatePercentageChange(currentValue, previousValue);
-        // Lógica para sparkline seria mais complexa, por enquanto, lista vazia
         List<BigDecimal> sparklineData = Collections.emptyList();
 
         return new MetricCardData(currentValue, percentageChange, sparklineData);
@@ -87,8 +83,6 @@ public class DashboardService {
 
     private BigDecimal calculatePercentageChange(BigDecimal current, BigDecimal previous) {
         if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
-            // Se o valor anterior era zero, qualquer aumento é "infinito". Retornamos 100%
-            // se o atual for positivo.
             return (current != null && current.compareTo(BigDecimal.ZERO) > 0) ? new BigDecimal("100.0")
                     : BigDecimal.ZERO;
         }
