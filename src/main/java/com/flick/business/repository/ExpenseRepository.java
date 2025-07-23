@@ -4,6 +4,7 @@ import com.flick.business.core.entity.Expense;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,4 +20,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
                         @Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate);
 
+        @Query("SELECT CAST(e.expenseDate AS date), SUM(e.value) FROM Expense e " +
+                        "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
+                        "GROUP BY CAST(e.expenseDate AS date) ORDER BY CAST(e.expenseDate AS date)")
+        List<Object[]> findExpenseByDay(@Param("startDate") ZonedDateTime startDate,
+                        @Param("endDate") ZonedDateTime endDate);
 }

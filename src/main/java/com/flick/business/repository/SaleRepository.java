@@ -59,4 +59,14 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
 
         @Query("SELECT s.customer.id FROM Sale s WHERE s.customer IS NOT NULL GROUP BY s.customer.id ORDER BY COUNT(s.id) DESC LIMIT 3")
         List<Long> findTop3MostFrequentCustomerIds();
+
+        @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate")
+        BigDecimal sumTotalValueBetweenDates(@Param("startDate") ZonedDateTime startDate,
+                        @Param("endDate") ZonedDateTime endDate);
+
+        @Query("SELECT CAST(s.saleDate AS date), SUM(s.totalValue) FROM Sale s " +
+                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "GROUP BY CAST(s.saleDate AS date) ORDER BY CAST(s.saleDate AS date)")
+        List<Object[]> findRevenueByDay(@Param("startDate") ZonedDateTime startDate,
+                        @Param("endDate") ZonedDateTime endDate);
 }
