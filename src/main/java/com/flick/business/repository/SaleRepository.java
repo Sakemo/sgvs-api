@@ -69,4 +69,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
                         "GROUP BY CAST(s.saleDate AS date) ORDER BY CAST(s.saleDate AS date)")
         List<Object[]> findRevenueByDay(@Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate);
+
+        @Query("SELECT COUNT(s.id) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate")
+        Long countSalesBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate);
 }
