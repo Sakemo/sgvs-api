@@ -17,7 +17,6 @@ import com.flick.business.api.dto.response.DashboardResponse;
 import com.flick.business.api.dto.response.common.ChartDataPoint;
 import com.flick.business.api.dto.response.common.MetricCardData;
 import com.flick.business.api.dto.response.common.TimeSeriesDataPoint;
-import com.flick.business.core.entity.Customer;
 import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.SaleItemRepository;
@@ -39,7 +38,6 @@ public class DashboardService {
                 ZonedDateTime previousStartDate = startDate.minusDays(durationDays);
                 ZonedDateTime previousEndDate = endDate.minusDays(durationDays);
 
-                Long currentNewCustomers = customerRepository.countNewCustomersBetween(startDate, endDate);
                 Long previousNewCustomers = customerRepository.countNewCustomersBetween(previousStartDate,
                                 previousEndDate);
 
@@ -60,9 +58,7 @@ public class DashboardService {
                                 endDate);
                 List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate);
                 List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate);
-
-                MetricCardData newCustomersCard = buildMetricCard(new BigDecimal(currentNewCustomers),
-                                new BigDecimal(previousNewCustomers));
+                new BigDecimal(previousNewCustomers);
 
                 BigDecimal currentAverageTicket = (currentSaleCount > 0)
                                 ? currentGrossRevenue.divide(new BigDecimal(currentSaleCount), 2, RoundingMode.HALF_UP)
@@ -71,6 +67,11 @@ public class DashboardService {
                                 ? previousGrossRevenue.divide(new BigDecimal(previousSaleCount), 2,
                                                 RoundingMode.HALF_UP)
                                 : BigDecimal.ZERO;
+                BigDecimal currentTotalReceivables = customerRepository.findTotalDebtBalance();
+                BigDecimal previousTotalReceivables = BigDecimal.ZERO;
+
+                MetricCardData totalReceivablesCard = buildMetricCard(currentTotalReceivables,
+                                previousTotalReceivables);
                 MetricCardData averageTicketCard = buildMetricCard(currentAverageTicket, previousAverageTicket);
 
                 MetricCardData grossRevenueCard = buildMetricCard(currentGrossRevenue, previousGrossRevenue);
@@ -103,7 +104,7 @@ public class DashboardService {
                                         BigDecimal revenue = revenueByDate.getOrDefault(date, BigDecimal.ZERO);
                                         BigDecimal expense = expenseByDate.getOrDefault(date, BigDecimal.ZERO);
                                         BigDecimal profit = revenue.subtract(expense);
-                                        return new TimeSeriesDataPoint(date, revenue, profit);
+                                        return new TimeSeriesDataPoint(date, revenue, profit, BigDecimal.ZERO);
                                 })
                                 .collect(Collectors.toList());
 
@@ -115,7 +116,7 @@ public class DashboardService {
                                 grossRevenueCard,
                                 netProfitCard,
                                 totalExpensesCard,
-                                newCustomersCard,
+                                totalReceivablesCard,
                                 averageTicketCard,
                                 salesByPaymentMethod,
                                 topSellingProducts,

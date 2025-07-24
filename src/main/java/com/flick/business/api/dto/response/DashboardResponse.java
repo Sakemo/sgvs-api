@@ -10,7 +10,7 @@ public record DashboardResponse(
                 MetricCardData grossRevenue,
                 MetricCardData netProfit,
                 MetricCardData totalExpense,
-                MetricCardData newCustomers,
+                MetricCardData totalReceivables,
                 MetricCardData averageTicket,
                 List<ChartDataPoint> salesByPaymentMethod,
                 List<ChartDataPoint> topSellingProducts,
