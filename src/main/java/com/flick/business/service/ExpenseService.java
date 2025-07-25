@@ -3,6 +3,7 @@ package com.flick.business.service;
 import com.flick.business.api.dto.request.commercial.ExpenseRequest;
 import com.flick.business.api.dto.response.commercial.ExpenseResponse;
 import com.flick.business.api.dto.response.common.PageResponse;
+import com.flick.business.api.dto.response.production.RestockItemRequest;
 import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.entity.Product;
@@ -14,7 +15,6 @@ import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.spec.ExpenseSpecification;
 import lombok.RequiredArgsConstructor;
-import lombok.var;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -65,7 +65,7 @@ public class ExpenseService {
         BigDecimal totalValue = BigDecimal.ZERO;
         List<Product> productsToUpdate = new ArrayList<>();
 
-        for (var itemRequest : request.restockItems()) {
+        for (RestockItemRequest itemRequest : request.restockItems()) {
             Product product = productService.findEntityById(itemRequest.productId());
             BigDecimal quantity = itemRequest.quantity();
             BigDecimal unitCostPrice = itemRequest.unitCostPrice();
