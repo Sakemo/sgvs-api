@@ -1,7 +1,7 @@
 package com.flick.business.api.controller;
 
-import com.flick.business.api.dto.request.CategoryRequest;
-import com.flick.business.api.dto.response.CategoryResponse;
+import com.flick.business.api.dto.request.production.CategoryRequest;
+import com.flick.business.api.dto.response.production.CategoryResponse;
 import com.flick.business.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

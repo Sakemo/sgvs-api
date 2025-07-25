@@ -1,4 +1,4 @@
-package com.flick.business.api.dto.response;
+package com.flick.business.api.dto.response.production;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;

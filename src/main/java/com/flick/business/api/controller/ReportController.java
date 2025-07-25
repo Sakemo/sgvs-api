@@ -3,7 +3,7 @@ package com.flick.business.api.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.flick.business.api.dto.response.reports.AbcAnalysisResponse;
+import com.flick.business.api.dto.response.aministration.reports.AbcAnalysisResponse;
 import com.flick.business.service.ReportService;
 
 import lombok.RequiredArgsConstructor;

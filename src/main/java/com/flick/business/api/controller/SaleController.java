@@ -1,7 +1,7 @@
 package com.flick.business.api.controller;
 
-import com.flick.business.api.dto.request.SaleRequest;
-import com.flick.business.api.dto.response.SaleResponse;
+import com.flick.business.api.dto.request.commercial.SaleRequest;
+import com.flick.business.api.dto.response.commercial.SaleResponse;
 import com.flick.business.api.dto.response.common.GroupSummary;
 import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.service.SaleService;

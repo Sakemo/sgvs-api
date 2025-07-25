@@ -2,7 +2,7 @@ package com.flick.business.api.mapper;
 
 import org.springframework.stereotype.Component;
 
-import com.flick.business.api.dto.request.ProductRequest;
+import com.flick.business.api.dto.request.production.ProductRequest;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;

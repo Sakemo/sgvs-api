@@ -12,9 +12,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.flick.business.api.dto.request.ProductRequest;
-import com.flick.business.api.dto.response.ProductResponse;
+import com.flick.business.api.dto.request.production.ProductRequest;
 import com.flick.business.api.dto.response.common.PageResponse;
+import com.flick.business.api.dto.response.production.ProductResponse;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.Product;

@@ -3,7 +3,7 @@ package com.flick.business.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.flick.business.api.dto.request.GeneralSettingsRequest;
+import com.flick.business.api.dto.request.settings.GeneralSettingsRequest;
 import com.flick.business.api.dto.response.GeneralSettingsResponse;
 import com.flick.business.api.mapper.GeneralSettingsMapper;
 import com.flick.business.core.entity.GeneralSettings;

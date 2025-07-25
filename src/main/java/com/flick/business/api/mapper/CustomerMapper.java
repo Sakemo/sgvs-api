@@ -1,6 +1,6 @@
 package com.flick.business.api.mapper;
 
-import com.flick.business.api.dto.request.CustomerRequest;
+import com.flick.business.api.dto.request.commercial.CustomerRequest;
 import com.flick.business.core.entity.Customer;
 import org.springframework.stereotype.Component;
 

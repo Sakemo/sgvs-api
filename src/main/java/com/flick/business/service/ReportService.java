@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.flick.business.api.dto.response.reports.AbcAnalysisResponse;
+import com.flick.business.api.dto.response.aministration.reports.AbcAnalysisResponse;
 import com.flick.business.repository.SaleItemRepository;
 
 import lombok.RequiredArgsConstructor;

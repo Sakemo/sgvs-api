@@ -1,16 +1,20 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.ExpenseRequest;
-import com.flick.business.api.dto.response.ExpenseResponse;
+import com.flick.business.api.dto.request.commercial.ExpenseRequest;
+import com.flick.business.api.dto.response.commercial.ExpenseResponse;
 import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.core.entity.Expense;
+import com.flick.business.core.entity.Product;
+import com.flick.business.core.entity.RestockItem;
 import com.flick.business.core.enums.ExpenseType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ExpenseRepository;
+import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.spec.ExpenseSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.var;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +35,70 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final ExpenseMapper expenseMapper;
+    private final ProductRepository productRepository;
+    private final ProductService productService;
+
+    @Transactional
+    public ExpenseResponse createExpense(ExpenseRequest request) {
+        Expense expense = new Expense();
+        expense.setName(request.name());
+        expense.setExpenseDate(request.expenseDate());
+        expense.setExpenseType(request.expenseType());
+        expense.setPaymentMethod(request.paymentMethod());
+        expense.setDescription(request.description());
+
+        if (request.expenseType() == ExpenseType.RESTOCKING) {
+            processRestockingExpense(expense, request);
+        } else {
+            processSimpleExpense(expense, request);
+        }
+
+        Expense savedExpense = expenseRepository.save(expense);
+        return ExpenseResponse.fromEntity(savedExpense);
+    }
+
+    private void processRestockingExpense(Expense expense, ExpenseRequest request) {
+        if (request.restockItems() == null || request.restockItems().isEmpty()) {
+            throw new BusinessException("Restocking expenses must contain at least one item.");
+        }
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+        List<Product> productsToUpdate = new ArrayList<>();
+
+        for (var itemRequest : request.restockItems()) {
+            Product product = productService.findEntityById(itemRequest.productId());
+            BigDecimal quantity = itemRequest.quantity();
+            BigDecimal unitCostPrice = itemRequest.unitCostPrice();
+
+            // update stock
+            product.setStockQuantity(product.getStockQuantity().add(quantity));
+            productsToUpdate.add(product);
+
+            // calculates expense value
+            BigDecimal itemTotal = quantity.multiply(unitCostPrice);
+            totalValue = totalValue.add(itemTotal);
+
+            // create and associates RestockItem
+            RestockItem restockItem = new RestockItem();
+            restockItem.setProduct(product);
+            restockItem.setQuantity(quantity);
+            restockItem.setUnitCostPrice(unitCostPrice);
+            expense.AddRestockItem(restockItem);
+        }
+
+        productRepository.saveAll(productsToUpdate);
+        expense.setValue(totalValue);
+    }
+
+    private void processSimpleExpense(Expense expense, ExpenseRequest request) {
+        if (request.value() == null || request.value().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("A value greater than zero is required for this type of expense.");
+        }
+        if (request.restockItems() != null && !request.restockItems().isEmpty()) {
+            throw new BusinessException("Restock items should not be provided for non-restocking expenses.");
+        }
+        expense.setValue(request.value());
+    }
 
     @Transactional
     public ExpenseResponse save(ExpenseRequest request) {

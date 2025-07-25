@@ -1,4 +1,4 @@
-package com.flick.business.api.dto.request;
+package com.flick.business.api.dto.request.production;
 
 import jakarta.validation.constraints.NotBlank;
 

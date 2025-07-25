@@ -1,4 +1,4 @@
-package com.flick.business.api.dto.response;
+package com.flick.business.api.dto.response.commercial;
 
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;

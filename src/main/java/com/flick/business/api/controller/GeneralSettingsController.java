@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.flick.business.api.dto.request.GeneralSettingsRequest;
+import com.flick.business.api.dto.request.settings.GeneralSettingsRequest;
 import com.flick.business.api.dto.response.GeneralSettingsResponse;
 import com.flick.business.service.GeneralSettingsService;
 

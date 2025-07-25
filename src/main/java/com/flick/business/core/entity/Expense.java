@@ -12,6 +12,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "expenses")
@@ -52,4 +54,13 @@ public class Expense {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
+
+    @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<RestockItem> restockItems = new ArrayList<>();
+
+    public void AddRestockItem(RestockItem item) {
+        restockItems.add(item);
+        item.setExpense(this);
+    }
 }

@@ -1,7 +1,7 @@
 package com.flick.business.api.controller;
 
-import com.flick.business.api.dto.request.ExpenseRequest;
-import com.flick.business.api.dto.response.ExpenseResponse;
+import com.flick.business.api.dto.request.commercial.ExpenseRequest;
+import com.flick.business.api.dto.response.commercial.ExpenseResponse;
 import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.service.ExpenseService;
 import jakarta.validation.Valid;

@@ -4,5 +4,6 @@ public enum ExpenseType {
     PERSONAL,
     BUSINESS,
     INVESTMENT,
+    RESTOCKING,
     OTHERS
 }

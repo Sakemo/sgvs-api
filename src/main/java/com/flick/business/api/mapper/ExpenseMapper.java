@@ -1,6 +1,6 @@
 package com.flick.business.api.mapper;
 
-import com.flick.business.api.dto.request.ExpenseRequest;
+import com.flick.business.api.dto.request.commercial.ExpenseRequest;
 import com.flick.business.core.entity.Expense;
 import org.springframework.stereotype.Component;
 

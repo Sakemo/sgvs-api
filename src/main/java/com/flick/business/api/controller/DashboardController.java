@@ -1,6 +1,6 @@
 package com.flick.business.api.controller;
 
-import com.flick.business.api.dto.response.DashboardResponse;
+import com.flick.business.api.dto.response.aministration.DashboardResponse;
 import com.flick.business.service.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

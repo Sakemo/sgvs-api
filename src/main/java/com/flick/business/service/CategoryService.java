@@ -1,7 +1,7 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.CategoryRequest;
-import com.flick.business.api.dto.response.CategoryResponse;
+import com.flick.business.api.dto.request.production.CategoryRequest;
+import com.flick.business.api.dto.response.production.CategoryResponse;
 import com.flick.business.core.entity.Category;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CategoryRepository;

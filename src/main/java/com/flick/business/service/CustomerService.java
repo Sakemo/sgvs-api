@@ -10,8 +10,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.flick.business.api.dto.request.CustomerRequest;
-import com.flick.business.api.dto.response.CustomerResponse;
+import com.flick.business.api.dto.request.commercial.CustomerRequest;
+import com.flick.business.api.dto.response.commercial.CustomerResponse;
 import com.flick.business.api.mapper.CustomerMapper;
 import com.flick.business.core.entity.Customer;
 import com.flick.business.exception.BusinessException;

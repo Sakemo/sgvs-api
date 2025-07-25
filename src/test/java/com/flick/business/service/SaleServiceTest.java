@@ -1,8 +1,8 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.SaleItemRequest;
-import com.flick.business.api.dto.request.SaleRequest;
-import com.flick.business.api.dto.response.SaleResponse;
+import com.flick.business.api.dto.request.commercial.SaleItemRequest;
+import com.flick.business.api.dto.request.commercial.SaleRequest;
+import com.flick.business.api.dto.response.commercial.SaleResponse;
 import com.flick.business.core.entity.Customer;
 import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;

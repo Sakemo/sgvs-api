@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.flick.business.api.dto.response.DashboardResponse;
+import com.flick.business.api.dto.response.aministration.DashboardResponse;
 import com.flick.business.api.dto.response.common.ChartDataPoint;
 import com.flick.business.api.dto.response.common.MetricCardData;
 import com.flick.business.api.dto.response.common.TimeSeriesDataPoint;

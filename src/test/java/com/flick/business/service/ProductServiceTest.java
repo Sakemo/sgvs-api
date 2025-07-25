@@ -1,6 +1,6 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.ProductRequest;
+import com.flick.business.api.dto.request.production.ProductRequest;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.GeneralSettings;

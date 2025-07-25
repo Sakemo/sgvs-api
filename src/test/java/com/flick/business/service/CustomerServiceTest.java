@@ -1,6 +1,6 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.CustomerRequest;
+import com.flick.business.api.dto.request.commercial.CustomerRequest;
 import com.flick.business.api.mapper.CustomerMapper;
 import com.flick.business.core.entity.Customer;
 import com.flick.business.exception.BusinessException;

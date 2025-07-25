@@ -1,7 +1,7 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.ProviderRequest;
-import com.flick.business.api.dto.response.ProviderResponse;
+import com.flick.business.api.dto.request.production.ProviderRequest;
+import com.flick.business.api.dto.response.production.ProviderResponse;
 import com.flick.business.core.entity.Provider;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProviderRepository;
