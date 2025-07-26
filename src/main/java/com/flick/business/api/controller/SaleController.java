@@ -80,4 +80,10 @@ public class SaleController {
                 productId, groupBy);
         return ResponseEntity.ok(summaries);
     }
+
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<Void> deleteSalePermanently(@PathVariable Long id) {
+        saleService.deletePermanently(id);
+        return ResponseEntity.noContent().build();
+    }
 }

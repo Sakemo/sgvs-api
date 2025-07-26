@@ -12,6 +12,7 @@ import com.flick.business.core.entity.SaleItem;
 import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
+import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.SaleRepository;
@@ -89,23 +90,6 @@ public class SaleService {
         return SaleResponse.fromEntity(savedSale);
     }
 
-    private boolean isStockManaged(Product product, StockControlType stockControl) {
-        return switch (stockControl) {
-            case GLOBAL -> true;
-            case PER_ITEM -> product.isManageStock();
-            case NONE -> false;
-        };
-    }
-
-    private void validateAndDecrementStock(Product product, BigDecimal requestedQuantity) {
-        if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
-            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Avaible: "
-                    + product.getStockQuantity() + ", Requested: " + requestedQuantity);
-        }
-
-        product.setStockQuantity(product.getStockQuantity().subtract(requestedQuantity));
-    }
-
     @Transactional(readOnly = true)
     public Page<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
             String paymentMethodStr, Long productId, String orderBy, int page, int size) {
@@ -156,6 +140,56 @@ public class SaleService {
     public List<GroupSummary> getSummaryByGroup(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
             String paymentMethodStr, Long productId, String groupBy) {
         return Collections.emptyList();
+    }
+
+    @Transactional
+    public void deletePermanently(Long saleId) {
+        Sale saleToDelete = saleRepository.findById(saleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sale not found with ID: " + saleId));
+
+        // restock
+        if (saleToDelete.getItems() != null) {
+            List<Product> productsToUpdate = new ArrayList<>();
+            for (SaleItem item : saleToDelete.getItems()) {
+                Product product = item.getProduct();
+                // product have stock management = 1 ?
+                if (product.isManageStock()) {
+                    product.setStockQuantity(product.getStockQuantity().add(item.getQuantity()));
+                    productsToUpdate.add(product);
+                }
+            }
+            if (!productsToUpdate.isEmpty()) {
+                productRepository.saveAll(productsToUpdate);
+            }
+        }
+
+        // return credit to customer if aplicable
+        if (saleToDelete.getPaymentMethod() == PaymentMethod.ON_CREDIT && saleToDelete.getCustomer() != null) {
+            Customer customer = saleToDelete.getCustomer();
+            customer.setDebtBalance(customer.getDebtBalance().subtract(saleToDelete.getTotalValue()));
+            customerRepository.save(customer);
+        }
+
+        // delete sale
+        saleRepository.delete(saleToDelete);
+    }
+
+    // -- utils --
+    private boolean isStockManaged(Product product, StockControlType stockControl) {
+        return switch (stockControl) {
+            case GLOBAL -> true;
+            case PER_ITEM -> product.isManageStock();
+            case NONE -> false;
+        };
+    }
+
+    private void validateAndDecrementStock(Product product, BigDecimal requestedQuantity) {
+        if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
+            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Avaible: "
+                    + product.getStockQuantity() + ", Requested: " + requestedQuantity);
+        }
+
+        product.setStockQuantity(product.getStockQuantity().subtract(requestedQuantity));
     }
 
     private Customer validateAndGetCustomer(SaleRequest request) {
