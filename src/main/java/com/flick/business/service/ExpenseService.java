@@ -60,7 +60,8 @@ public class ExpenseService {
 
     /*
      * [DESUSED SINCE hotfix/create-expense | MOD:
-     * 18c72a728b6d0b7d85c37e1dbd301f0372a41ffe | COMMITED: ]
+     * 18c72a728b6d0b7d85c37e1dbd301f0372a41ffe | COMMITED:
+     * a9f056735e0628f8e2e05af6b69a68e88f46bad5]
      * 
      * @Transactional
      * public ExpenseResponse save(ExpenseRequest request) {
