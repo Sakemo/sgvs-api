@@ -34,12 +34,11 @@ import java.util.List;
 public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
-    private final ExpenseMapper expenseMapper;
     private final ProductRepository productRepository;
     private final ProductService productService;
 
     @Transactional
-    public ExpenseResponse createExpense(ExpenseRequest request) {
+    public ExpenseResponse create(ExpenseRequest request) {
         Expense expense = new Expense();
         expense.setName(request.name());
         expense.setExpenseDate(request.expenseDate());
@@ -49,68 +48,45 @@ public class ExpenseService {
 
         if (request.expenseType() == ExpenseType.RESTOCKING) {
             processRestockingExpense(expense, request);
+            System.out.println("recognizade restocking: " + expense);
         } else {
             processSimpleExpense(expense, request);
+            System.out.println("recognizade not-restocking: " + expense);
         }
-
+        System.out.println("value: " + expense.getValue());
         Expense savedExpense = expenseRepository.save(expense);
         return ExpenseResponse.fromEntity(savedExpense);
     }
 
-    private void processRestockingExpense(Expense expense, ExpenseRequest request) {
-        if (request.restockItems() == null || request.restockItems().isEmpty()) {
-            throw new BusinessException("Restocking expenses must contain at least one item.");
-        }
-
-        BigDecimal totalValue = BigDecimal.ZERO;
-        List<Product> productsToUpdate = new ArrayList<>();
-
-        for (RestockItemRequest itemRequest : request.restockItems()) {
-            Product product = productService.findEntityById(itemRequest.productId());
-            BigDecimal quantity = itemRequest.quantity();
-            BigDecimal unitCostPrice = itemRequest.unitCostPrice();
-
-            // update stock
-            product.setStockQuantity(product.getStockQuantity().add(quantity));
-            productsToUpdate.add(product);
-
-            // calculates expense value
-            BigDecimal itemTotal = quantity.multiply(unitCostPrice);
-            totalValue = totalValue.add(itemTotal);
-
-            // create and associates RestockItem
-            RestockItem restockItem = new RestockItem();
-            restockItem.setProduct(product);
-            restockItem.setQuantity(quantity);
-            restockItem.setUnitCostPrice(unitCostPrice);
-            expense.AddRestockItem(restockItem);
-        }
-
-        productRepository.saveAll(productsToUpdate);
-        expense.setValue(totalValue);
-    }
-
-    private void processSimpleExpense(Expense expense, ExpenseRequest request) {
-        if (request.value() == null || request.value().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BusinessException("A value greater than zero is required for this type of expense.");
-        }
-        if (request.restockItems() != null && !request.restockItems().isEmpty()) {
-            throw new BusinessException("Restock items should not be provided for non-restocking expenses.");
-        }
-        expense.setValue(request.value());
-    }
-
-    @Transactional
-    public ExpenseResponse save(ExpenseRequest request) {
-        Expense expense = expenseMapper.toEntity(request);
-        Expense savedExpense = expenseRepository.save(expense);
-        return ExpenseResponse.fromEntity(savedExpense);
-    }
+    /*
+     * [DESUSED SINCE hotfix/create-expense | MOD:
+     * 18c72a728b6d0b7d85c37e1dbd301f0372a41ffe | COMMITED: ]
+     * 
+     * @Transactional
+     * public ExpenseResponse save(ExpenseRequest request) {
+     * Expense expense = expenseMapper.toEntity(request);
+     * Expense savedExpense = expenseRepository.save(expense);
+     * return ExpenseResponse.fromEntity(savedExpense);
+     * }
+     */
 
     @Transactional
     public ExpenseResponse update(Long id, ExpenseRequest request) {
         Expense existingExpense = findEntityById(id);
-        expenseMapper.updateEntityFromRequest(request, existingExpense);
+
+        if (existingExpense.getExpenseType() == ExpenseType.RESTOCKING
+                && request.expenseType() != ExpenseType.RESTOCKING) {
+            reverseStockUpdate(existingExpense);
+            existingExpense.getRestockItems().clear();
+        }
+
+        mapCommonFields(existingExpense, request);
+
+        if (request.expenseType() == ExpenseType.RESTOCKING) {
+            processRestockingExpense(existingExpense, request);
+        } else {
+            processSimpleExpense(existingExpense, request);
+        }
         Expense updatedExpense = expenseRepository.save(existingExpense);
         return ExpenseResponse.fromEntity(updatedExpense);
     }
@@ -154,6 +130,73 @@ public class ExpenseService {
             throw new ResourceNotFoundException("Expense not found with ID: " + id);
         }
         expenseRepository.deleteById(id);
+    }
+
+    //
+    private void mapCommonFields(Expense expense, ExpenseRequest request) {
+        expense.setName(request.name());
+        expense.setExpenseDate(request.expenseDate());
+        expense.setExpenseType(request.expenseType());
+        expense.setPaymentMethod(request.paymentMethod());
+        expense.setDescription(request.description());
+    }
+
+    private void processRestockingExpense(Expense expense, ExpenseRequest request) {
+        if (request.restockItems() == null || request.restockItems().isEmpty()) {
+            throw new BusinessException("Restocking expenses must contain at least one item.");
+        }
+
+        BigDecimal totalValue = BigDecimal.ZERO;
+        List<Product> productsToUpdate = new ArrayList<>();
+
+        for (RestockItemRequest itemRequest : request.restockItems()) {
+            Product product = productService.findEntityById(itemRequest.productId());
+            BigDecimal quantity = itemRequest.quantity();
+            BigDecimal unitCostPrice = itemRequest.unitCostPrice();
+
+            // update stock
+            product.setStockQuantity(product.getStockQuantity().add(quantity));
+            product.setCostPrice(unitCostPrice);
+            productsToUpdate.add(product);
+
+            // calculates expense value
+            BigDecimal itemTotal = quantity.multiply(unitCostPrice);
+            totalValue = totalValue.add(itemTotal);
+            System.out.println("LOG LOG LOG LOG        :        " + totalValue);
+
+            // create and associates RestockItem
+            RestockItem restockItem = new RestockItem();
+            restockItem.setProduct(product);
+            restockItem.setQuantity(quantity);
+            restockItem.setUnitCostPrice(unitCostPrice);
+            expense.AddRestockItem(restockItem);
+        }
+        expense.setValue(totalValue);
+        productRepository.saveAll(productsToUpdate);
+    }
+
+    private void reverseStockUpdate(Expense expense) {
+        List<Product> productsToRevert = new ArrayList<>();
+        for (RestockItem item : expense.getRestockItems()) {
+            Product product = item.getProduct();
+            if (product != null) {
+                product.setStockQuantity(product.getStockQuantity().subtract(item.getQuantity()));
+                productsToRevert.add(product);
+            }
+        }
+        if (!productsToRevert.isEmpty()) {
+            productRepository.saveAll(productsToRevert);
+        }
+    }
+
+    private void processSimpleExpense(Expense expense, ExpenseRequest request) {
+        if (request.value() == null || request.value().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("A value greater than zero is required for this type of expense.");
+        }
+        if (request.restockItems() != null && !request.restockItems().isEmpty()) {
+            throw new BusinessException("Restock items should not be provided for non-restocking expenses.");
+        }
+        expense.setValue(request.value());
     }
 
     private Expense findEntityById(Long id) {
