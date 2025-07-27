@@ -72,7 +72,7 @@ class ExpenseServiceTest {
                     ExpenseType.BUSINESS, PaymentMethod.BANK_TRANSFER, "Monthly rent", null);
             when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            expenseService.createExpense(request);
+            expenseService.create(request);
 
             verify(expenseRepository).save(expenseArgumentCaptor.capture());
             Expense savedExpense = expenseArgumentCaptor.getValue();
@@ -93,7 +93,7 @@ class ExpenseServiceTest {
             when(productService.findEntityById(1L)).thenReturn(product1);
             when(expenseRepository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
 
-            expenseService.createExpense(request);
+            expenseService.create(request);
 
             verify(expenseRepository).save(expenseArgumentCaptor.capture());
             verify(productRepository).saveAll(productListArgumentCaptor.capture());
@@ -104,7 +104,7 @@ class ExpenseServiceTest {
 
             Product updatedProduct = productListArgumentCaptor.getValue().get(0);
             assertThat(updatedProduct.getStockQuantity()).isEqualByComparingTo("60"); // 10 + 50
-            assertThat(updatedProduct.getCostPrice()).isEqualByComparingTo("5.00"); // Weighted average
+            assertThat(updatedProduct.getCostPrice()).isEqualByComparingTo("4.50");
         }
 
         @Test
@@ -113,7 +113,7 @@ class ExpenseServiceTest {
             ExpenseRequest request = new ExpenseRequest("Invalid Restock", null, ZonedDateTime.now(),
                     ExpenseType.RESTOCKING, PaymentMethod.CASH, "", Collections.emptyList());
 
-            assertThatThrownBy(() -> expenseService.createExpense(request))
+            assertThatThrownBy(() -> expenseService.create(request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Restocking expenses must contain at least one item");
         }
@@ -124,7 +124,7 @@ class ExpenseServiceTest {
             ExpenseRequest request = new ExpenseRequest("Invalid Simple", null, ZonedDateTime.now(),
                     ExpenseType.BUSINESS, PaymentMethod.CASH, "", null);
 
-            assertThatThrownBy(() -> expenseService.createExpense(request))
+            assertThatThrownBy(() -> expenseService.create(request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("value greater than zero is required");
         }

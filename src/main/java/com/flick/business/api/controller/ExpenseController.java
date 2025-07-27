@@ -26,7 +26,7 @@ public class ExpenseController {
     public ResponseEntity<ExpenseResponse> createExpense(
             @Valid @RequestBody ExpenseRequest request,
             UriComponentsBuilder uriBuilder) {
-        ExpenseResponse savedExpense = expenseService.save(request);
+        ExpenseResponse savedExpense = expenseService.create(request);
         URI uri = uriBuilder.path("/api/expenses/{id}").buildAndExpand(savedExpense.id()).toUri();
         return ResponseEntity.created(uri).body(savedExpense);
     }

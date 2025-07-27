@@ -6,8 +6,11 @@ import com.flick.business.core.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
@@ -17,7 +20,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "expenses")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -56,6 +60,7 @@ public class Expense {
     private ZonedDateTime updatedAt;
 
     @OneToMany(mappedBy = "expense", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
     @Builder.Default
     private List<RestockItem> restockItems = new ArrayList<>();
 
