@@ -33,4 +33,17 @@ public class CategoryController {
         URI uri = uriBuilder.path("/api/categories/{id}").buildAndExpand(savedCategory.id()).toUri();
         return ResponseEntity.created(uri).body(savedCategory);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryResponse> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoryRequest request) {
+        return ResponseEntity.ok(categoryService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        categoryService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -72,4 +72,8 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
 
         @Query("SELECT COUNT(s.id) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate")
         Long countSalesBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate);
+
+        @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId")
+        long countByCategoryId(@Param("categoryId") Long categoryId);
+
 }
