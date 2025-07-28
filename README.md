@@ -1,3 +1,5 @@
+Backend repo for: (https://github.com/Sakemo/sgvs-ui)[flick-business-frontend]
+
 ### **Master Project Document: Simplified Sales & Gestião de Vendas (SGVS)**
 
 **Version:** 1.0 (Post-Refactor)
