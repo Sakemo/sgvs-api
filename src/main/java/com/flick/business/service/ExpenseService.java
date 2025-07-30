@@ -39,7 +39,7 @@ public class ExpenseService {
     private final ProductService productService;
 
     @Transactional
-    public ExpenseResponse createExpense(ExpenseRequest request) {
+    public ExpenseResponse create(ExpenseRequest request) {
         Expense expense = new Expense();
         expense.setName(request.name());
         expense.setExpenseDate(request.expenseDate());
@@ -87,6 +87,16 @@ public class ExpenseService {
         }
         productRepository.saveAll(productsToUpdate);
         expense.setValue(totalValue);
+    }
+
+    @Transactional
+    public Product restockProduct(Long productId, BigDecimal quantity, BigDecimal newCostPrice) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+        
+        product.setStockQuantity(product.getStockQuantity().add(quantity));
+        product.setCostPrice(newCostPrice);
+        return productRepository.save(product);
     }
 
     private void processSimpleExpense(Expense expense, ExpenseRequest request) {
