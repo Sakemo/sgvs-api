@@ -85,7 +85,6 @@ public class ExpenseService {
             restockItem.setUnitCostPrice(unitCostPrice);
             expense.AddRestockItem(restockItem);
         }
-
         productRepository.saveAll(productsToUpdate);
         expense.setValue(totalValue);
     }
