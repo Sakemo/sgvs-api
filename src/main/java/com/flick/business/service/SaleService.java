@@ -57,7 +57,6 @@ public class SaleService {
         newSale.setCustomer(customer);
 
         BigDecimal totalValue = BigDecimal.ZERO;
-        List<Product> productsToUpdate = new ArrayList<>();
 
         for (var itemRequest : request.items()) {
             Product product = productService.findEntityById(itemRequest.productId());
@@ -66,7 +65,6 @@ public class SaleService {
 
             if (isStockManagedForItem) {
                 validateAndDecrementStock(product, itemRequest.quantity());
-                productsToUpdate.add(product);
             }
 
             SaleItem saleItem = SaleItem.builder()
@@ -82,9 +80,6 @@ public class SaleService {
         newSale.setTotalValue(totalValue);
         updateCustomerDebt(customer, newSale);
 
-        if (!productsToUpdate.isEmpty()) {
-            productRepository.saveAll(productsToUpdate);
-        }
         Sale savedSale = saleRepository.save(newSale);
 
         return SaleResponse.fromEntity(savedSale);
@@ -217,7 +212,6 @@ public class SaleService {
             }
             customer.setDebtBalance(newDebt);
             customer.setLastCreditPurchaseAt(sale.getSaleDate());
-            customerRepository.save(customer);
         }
     }
 
