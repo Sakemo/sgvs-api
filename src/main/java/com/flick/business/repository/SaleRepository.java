@@ -2,6 +2,8 @@ package com.flick.business.repository;
 
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -75,5 +77,15 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
 
         @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId")
         long countByCategoryId(@Param("categoryId") Long categoryId);
+
+        /**
+         * Finds all sales for a specific customer that are pending payment.
+         * This is used to populate the customer's payment settlement modal.
+         * 
+         * @param customerId    The ID of the customer.
+         * @param paymentStatus The status to filter by (typically PENDING).
+         * @return A list of pending sales.
+         */
+        List<Sale> findByCustomerIdAndPaymentStatus(Long customerId, PaymentStatus paymentStatus);
 
 }

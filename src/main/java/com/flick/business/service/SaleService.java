@@ -10,6 +10,7 @@ import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.entity.SaleItem;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
 import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
@@ -55,6 +56,12 @@ public class SaleService {
 
         Customer customer = validateAndGetCustomer(request);
         newSale.setCustomer(customer);
+
+        if (request.paymentMethod() == PaymentMethod.ON_CREDIT) {
+            newSale.setPaymentStatus(PaymentStatus.PENDING);
+        } else {
+            newSale.setPaymentStatus(PaymentStatus.NOT_APPLICABLE);
+        }
 
         BigDecimal totalValue = BigDecimal.ZERO;
 
