@@ -3,6 +3,8 @@ package com.flick.business.repository.spec;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.entity.SaleItem;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
+
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -17,6 +19,7 @@ public class SaleSpecification {
             ZonedDateTime endDate,
             Long customerId,
             PaymentMethod paymentMethod,
+            PaymentStatus paymentStatus,
             Long productId) {
 
         return (root, query, cb) -> {
@@ -36,6 +39,9 @@ public class SaleSpecification {
             }
             if (paymentMethod != null) {
                 predicates.add(cb.equal(root.get("paymentMethod"), paymentMethod));
+            }
+            if (paymentStatus != null) {
+                predicates.add(cb.equal(root.get("paymentStatus"), paymentStatus));
             }
             if (productId != null) {
                 // Subquery to check if a sale contains a specific product

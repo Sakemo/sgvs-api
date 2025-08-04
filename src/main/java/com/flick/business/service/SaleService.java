@@ -10,6 +10,7 @@ import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.entity.SaleItem;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
 import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
@@ -56,8 +57,13 @@ public class SaleService {
         Customer customer = validateAndGetCustomer(request);
         newSale.setCustomer(customer);
 
+        if (request.paymentMethod() == PaymentMethod.ON_CREDIT) {
+            newSale.setPaymentStatus(PaymentStatus.PENDING);
+        } else {
+            newSale.setPaymentStatus(PaymentStatus.NOT_APPLICABLE);
+        }
+
         BigDecimal totalValue = BigDecimal.ZERO;
-        List<Product> productsToUpdate = new ArrayList<>();
 
         for (var itemRequest : request.items()) {
             Product product = productService.findEntityById(itemRequest.productId());
@@ -66,7 +72,6 @@ public class SaleService {
 
             if (isStockManagedForItem) {
                 validateAndDecrementStock(product, itemRequest.quantity());
-                productsToUpdate.add(product);
             }
 
             SaleItem saleItem = SaleItem.builder()
@@ -82,9 +87,6 @@ public class SaleService {
         newSale.setTotalValue(totalValue);
         updateCustomerDebt(customer, newSale);
 
-        if (!productsToUpdate.isEmpty()) {
-            productRepository.saveAll(productsToUpdate);
-        }
         Sale savedSale = saleRepository.save(newSale);
 
         return SaleResponse.fromEntity(savedSale);
@@ -92,14 +94,21 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public Page<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, Long productId, String orderBy, int page, int size) {
+            String paymentMethodStr,
+            String paymentStatusStr,
+            Long productId, String orderBy, int page, int size) {
+
         PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
                 : null;
+
+        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
+                : null;
+
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Specification<Sale> spec = SaleSpecification.withFilters(startDate, endDate, customerId, paymentMethod,
-                productId);
+                paymentStatus, productId);
 
         Page<Sale> salePage = saleRepository.findAll(spec, pageable);
         return salePage.map(SaleResponse::fromEntity);
@@ -107,8 +116,11 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public BigDecimal getGrossTotal(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, Long productId) {
+            String paymentMethodStr, String paymentStatusStr, Long productId) {
         PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
+                : null;
+
+        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
                 : null;
 
         ZonedDateTime effectiveStartDate = (startDate != null)
@@ -124,6 +136,7 @@ public class SaleService {
                 effectiveEndDate,
                 customerId,
                 paymentMethod,
+                paymentStatus,
                 productId);
     }
 
@@ -217,7 +230,6 @@ public class SaleService {
             }
             customer.setDebtBalance(newDebt);
             customer.setLastCreditPurchaseAt(sale.getSaleDate());
-            customerRepository.save(customer);
         }
     }
 

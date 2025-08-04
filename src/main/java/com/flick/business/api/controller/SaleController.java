@@ -40,11 +40,13 @@ public class SaleController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) String paymentStatus,
             @RequestParam(required = false) Long productId,
             @RequestParam(required = false) String orderBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<SaleResponse> salesPage = saleService.listAll(startDate, endDate, customerId, paymentMethod, productId,
+        Page<SaleResponse> salesPage = saleService.listAll(startDate, endDate, customerId, paymentMethod, paymentStatus,
+                productId,
                 orderBy, page, size);
         return ResponseEntity.ok(salesPage);
     }
@@ -55,8 +57,10 @@ public class SaleController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) String paymentStatus,
             @RequestParam(required = false) Long productId) {
-        BigDecimal total = saleService.getGrossTotal(startDate, endDate, customerId, paymentMethod, productId);
+        BigDecimal total = saleService.getGrossTotal(startDate, endDate, customerId, paymentMethod, paymentStatus,
+                productId);
         return ResponseEntity.ok(total);
     }
 

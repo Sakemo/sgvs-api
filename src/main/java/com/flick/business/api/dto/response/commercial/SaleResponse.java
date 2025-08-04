@@ -4,6 +4,8 @@ import com.flick.business.api.dto.response.summary.CustomerSummaryResponse;
 import com.flick.business.api.dto.response.summary.ProductSummaryResponse;
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
+
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -14,6 +16,7 @@ public record SaleResponse(
                 BigDecimal totalValue,
                 CustomerSummaryResponse customer,
                 PaymentMethod paymentMethod,
+                PaymentStatus paymentStatus,
                 String description,
                 ZonedDateTime saleDate,
                 List<SaleItemResponse> items) {
@@ -26,6 +29,7 @@ public record SaleResponse(
                                                                 sale.getCustomer().getName())
                                                 : null,
                                 sale.getPaymentMethod(),
+                                sale.getPaymentStatus(),
                                 sale.getDescription(),
                                 sale.getSaleDate(),
                                 sale.getItems().stream()

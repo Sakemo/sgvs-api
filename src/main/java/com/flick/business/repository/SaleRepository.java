@@ -2,6 +2,8 @@ package com.flick.business.repository;
 
 import com.flick.business.core.entity.Sale;
 import com.flick.business.core.enums.PaymentMethod;
+import com.flick.business.core.enums.PaymentStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -19,15 +21,17 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          * Calculates the gross total of sales based on a set of filters.
          */
         @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s " +
-                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " + // << Query de data simplificada
+                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
                         "AND (:customerId IS NULL OR s.customer.id = :customerId) " +
                         "AND (:paymentMethod IS NULL OR s.paymentMethod = :paymentMethod) " +
+                        "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
                         "AND (:productId IS NULL OR EXISTS (SELECT 1 FROM SaleItem si WHERE si.sale = s AND si.product.id = :productId))")
         BigDecimal getGrossTotalWithFilters(
                         @Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate,
                         @Param("customerId") Long customerId,
                         @Param("paymentMethod") PaymentMethod paymentMethod,
+                        @Param("paymentStatus") PaymentStatus paymentStatus,
                         @Param("productId") Long productId);
 
         /**
@@ -75,5 +79,15 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
 
         @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId")
         long countByCategoryId(@Param("categoryId") Long categoryId);
+
+        /**
+         * Finds all sales for a specific customer that are pending payment.
+         * This is used to populate the customer's payment settlement modal.
+         * 
+         * @param customerId    The ID of the customer.
+         * @param paymentStatus The status to filter by (typically PENDING).
+         * @return A list of pending sales.
+         */
+        List<Sale> findByCustomerIdAndPaymentStatus(Long customerId, PaymentStatus paymentStatus);
 
 }
