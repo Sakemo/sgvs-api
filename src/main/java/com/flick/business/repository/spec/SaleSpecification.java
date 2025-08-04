@@ -24,13 +24,17 @@ public class SaleSpecification {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            // Use LEFT JOIN FETCH to avoid N+1 problems when loading sales
-            root.fetch("customer", JoinType.LEFT);
-            query.distinct(true);
+
+            if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("customer", JoinType.LEFT);
+                root.fetch("items", JoinType.LEFT).fetch("product", JoinType.LEFT);
+                query.distinct(true);
+            }
 
             if (startDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("saleDate"), startDate));
             }
+            // ... (resto dos if's para customerId, paymentMethod, etc.)
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("saleDate"), endDate));
             }
@@ -44,12 +48,10 @@ public class SaleSpecification {
                 predicates.add(cb.equal(root.get("paymentStatus"), paymentStatus));
             }
             if (productId != null) {
-                // Subquery to check if a sale contains a specific product
                 Subquery<Long> subquery = query.subquery(Long.class);
                 Root<SaleItem> saleItemRoot = subquery.from(SaleItem.class);
                 subquery.select(saleItemRoot.get("sale").get("id"));
                 subquery.where(cb.equal(saleItemRoot.get("product").get("id"), productId));
-
                 predicates.add(root.get("id").in(subquery));
             }
 
