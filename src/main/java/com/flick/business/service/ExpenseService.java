@@ -1,24 +1,21 @@
 package com.flick.business.service;
 
-import com.flick.business.api.dto.request.commercial.SaleRequest;
-import com.flick.business.api.dto.response.commercial.SaleResponse;
-import com.flick.business.api.dto.response.common.GroupSummary;
-import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
-import com.flick.business.core.entity.Customer;
-import com.flick.business.core.entity.GeneralSettings;
+import com.flick.business.api.dto.request.commercial.ExpenseRequest;
+import com.flick.business.api.dto.response.commercial.ExpenseResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
+import com.flick.business.api.dto.response.production.RestockItemRequest;
+import com.flick.business.api.mapper.ExpenseMapper;
+import com.flick.business.core.entity.Expense;
 import com.flick.business.core.entity.Product;
-import com.flick.business.core.entity.Sale;
-import com.flick.business.core.entity.SaleItem;
-import com.flick.business.core.enums.PaymentMethod;
-import com.flick.business.core.enums.PaymentStatus;
-import com.flick.business.core.enums.settings.StockControlType;
+import com.flick.business.core.entity.RestockItem;
+import com.flick.business.core.enums.ExpenseType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
-import com.flick.business.repository.CustomerRepository;
+import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.ProductRepository;
-import com.flick.business.repository.SaleRepository;
-import com.flick.business.repository.spec.SaleSpecification;
+import com.flick.business.repository.spec.ExpenseSpecification;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,99 +27,120 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class SaleService {
+public class ExpenseService {
 
-    private final SaleRepository saleRepository;
-    private final ProductService productService;
-    private final CustomerService customerService;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseMapper expenseMapper;
     private final ProductRepository productRepository;
-    private final CustomerRepository customerRepository;
-    private final GeneralSettingsService settingsService;
+    private final ProductService productService;
 
     @Transactional
-    public SaleResponse registerSale(SaleRequest request) {
-        GeneralSettings settings = settingsService.findEntity();
-        StockControlType stockControl = settings.getStockControlType();
+    public ExpenseResponse create(ExpenseRequest request) {
+        Expense expense = new Expense();
+        expense.setName(request.name());
+        expense.setExpenseDate(request.expenseDate());
+        expense.setExpenseType(request.expenseType());
+        expense.setPaymentMethod(request.paymentMethod());
+        expense.setDescription(request.description());
 
-        Sale newSale = new Sale();
-        newSale.setPaymentMethod(request.paymentMethod());
-        newSale.setDescription(request.description());
-
-        Customer customer = validateAndGetCustomer(request);
-        newSale.setCustomer(customer);
-
-        if (request.paymentMethod() == PaymentMethod.ON_CREDIT) {
-            newSale.setPaymentStatus(PaymentStatus.PENDING);
+        if (request.expenseType() == ExpenseType.RESTOCKING) {
+            processRestockingExpense(expense, request);
         } else {
-            newSale.setPaymentStatus(PaymentStatus.NOT_APPLICABLE);
+            processSimpleExpense(expense, request);
+        }
+
+        Expense savedExpense = expenseRepository.save(expense);
+        return ExpenseResponse.fromEntity(savedExpense);
+    }
+
+    private void processRestockingExpense(Expense expense, ExpenseRequest request) {
+        if (request.restockItems() == null || request.restockItems().isEmpty()) {
+            throw new BusinessException("Restocking expenses must contain at least one item.");
         }
 
         BigDecimal totalValue = BigDecimal.ZERO;
+        List<Product> productsToUpdate = new ArrayList<>();
 
-        for (var itemRequest : request.items()) {
+        for (RestockItemRequest itemRequest : request.restockItems()) {
             Product product = productService.findEntityById(itemRequest.productId());
+            BigDecimal quantity = itemRequest.quantity();
+            BigDecimal unitCostPrice = itemRequest.unitCostPrice();
 
-            boolean isStockManagedForItem = isStockManaged(product, stockControl);
+            // update stock
+            product.setStockQuantity(product.getStockQuantity().add(quantity));
+            productsToUpdate.add(product);
 
-            if (isStockManagedForItem) {
-                validateAndDecrementStock(product, itemRequest.quantity());
-            }
+            // calculates expense value
+            BigDecimal itemTotal = quantity.multiply(unitCostPrice);
+            totalValue = totalValue.add(itemTotal);
 
-            SaleItem saleItem = SaleItem.builder()
-                    .product(product)
-                    .quantity(itemRequest.quantity())
-                    .unitPrice(product.getSalePrice())
-                    .build();
-
-            newSale.addItem(saleItem);
-            totalValue = totalValue.add(saleItem.getTotalValue());
+            // create and associates RestockItem
+            RestockItem restockItem = new RestockItem();
+            restockItem.setProduct(product);
+            restockItem.setQuantity(quantity);
+            restockItem.setUnitCostPrice(unitCostPrice);
+            expense.AddRestockItem(restockItem);
         }
+        productRepository.saveAll(productsToUpdate);
+        expense.setValue(totalValue);
+    }
 
-        newSale.setTotalValue(totalValue);
-        updateCustomerDebt(customer, newSale);
+    @Transactional
+    public Product restockProduct(Long productId, BigDecimal quantity, BigDecimal newCostPrice) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+        
+        product.setStockQuantity(product.getStockQuantity().add(quantity));
+        product.setCostPrice(newCostPrice);
+        return productRepository.save(product);
+    }
 
-        Sale savedSale = saleRepository.save(newSale);
+    private void processSimpleExpense(Expense expense, ExpenseRequest request) {
+        if (request.value() == null || request.value().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("A value greater than zero is required for this type of expense.");
+        }
+        if (request.restockItems() != null && !request.restockItems().isEmpty()) {
+            throw new BusinessException("Restock items should not be provided for non-restocking expenses.");
+        }
+        expense.setValue(request.value());
+    }
 
-        return SaleResponse.fromEntity(savedSale);
+    @Transactional
+    public ExpenseResponse save(ExpenseRequest request) {
+        Expense expense = expenseMapper.toEntity(request);
+        Expense savedExpense = expenseRepository.save(expense);
+        return ExpenseResponse.fromEntity(savedExpense);
+    }
+
+    @Transactional
+    public ExpenseResponse update(Long id, ExpenseRequest request) {
+        Expense existingExpense = findEntityById(id);
+        expenseMapper.updateEntityFromRequest(request, existingExpense);
+        Expense updatedExpense = expenseRepository.save(existingExpense);
+        return ExpenseResponse.fromEntity(updatedExpense);
     }
 
     @Transactional(readOnly = true)
-    public Page<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr,
-            String paymentStatusStr,
-            Long productId, String orderBy, int page, int size) {
-
-        PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
-                : null;
-
-        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
-                : null;
-
-        Sort sort = createSort(orderBy);
+    public PageResponse<ExpenseResponse> listAll(String name, String expenseTypeStr, ZonedDateTime startDate,
+            ZonedDateTime endDate, int page, int size) {
+        ExpenseType expenseType = parseExpenseType(expenseTypeStr);
+        Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType);
+        Sort sort = Sort.by(Sort.Direction.DESC, "expenseDate");
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Specification<Sale> spec = SaleSpecification.withFilters(startDate, endDate, customerId, paymentMethod,
-                paymentStatus, productId);
+        Page<Expense> expensePage = expenseRepository.findAll(spec, pageable);
 
-        Page<Sale> salePage = saleRepository.findAll(spec, pageable);
-        return salePage.map(SaleResponse::fromEntity);
+        Page<ExpenseResponse> dtoPage = expensePage.map(ExpenseResponse::fromEntity);
+
+        return new PageResponse<>(dtoPage);
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal getGrossTotal(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, String paymentStatusStr, Long productId) {
-        PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
-                : null;
-
-        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
-                : null;
-
+    public BigDecimal calculateTotal(ZonedDateTime startDate, ZonedDateTime endDate) {
         ZonedDateTime effectiveStartDate = (startDate != null)
                 ? startDate
                 : ZonedDateTime.parse("1900-01-01T00:00:00Z");
@@ -131,119 +149,35 @@ public class SaleService {
                 ? endDate
                 : ZonedDateTime.parse("9999-12-31T23:59:59Z");
 
-        return saleRepository.getGrossTotalWithFilters(
-                effectiveStartDate,
-                effectiveEndDate,
-                customerId,
-                paymentMethod,
-                paymentStatus,
-                productId);
+        return expenseRepository.sumTotalValueBetweenDates(effectiveStartDate, effectiveEndDate);
     }
 
     @Transactional(readOnly = true)
-    public List<TotalByPaymentMethod> getTotalByPaymentMethods(ZonedDateTime startDate, ZonedDateTime endDate) {
-        List<Object[]> results = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate, endDate);
-
-        return results.stream()
-                .map(res -> new TotalByPaymentMethod((PaymentMethod) res[0], (BigDecimal) res[1]))
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<GroupSummary> getSummaryByGroup(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, Long productId, String groupBy) {
-        return Collections.emptyList();
+    public ExpenseResponse findById(Long id) {
+        return ExpenseResponse.fromEntity(findEntityById(id));
     }
 
     @Transactional
-    public void deletePermanently(Long saleId) {
-        Sale saleToDelete = saleRepository.findById(saleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sale not found with ID: " + saleId));
-
-        // restock
-        if (saleToDelete.getItems() != null) {
-            List<Product> productsToUpdate = new ArrayList<>();
-            for (SaleItem item : saleToDelete.getItems()) {
-                Product product = item.getProduct();
-                // product have stock management = 1 ?
-                if (product.isManageStock()) {
-                    product.setStockQuantity(product.getStockQuantity().add(item.getQuantity()));
-                    productsToUpdate.add(product);
-                }
-            }
-            if (!productsToUpdate.isEmpty()) {
-                productRepository.saveAll(productsToUpdate);
-            }
+    public void deleteById(Long id) {
+        if (!expenseRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Expense not found with ID: " + id);
         }
-
-        // return credit to customer if aplicable
-        if (saleToDelete.getPaymentMethod() == PaymentMethod.ON_CREDIT && saleToDelete.getCustomer() != null) {
-            Customer customer = saleToDelete.getCustomer();
-            customer.setDebtBalance(customer.getDebtBalance().subtract(saleToDelete.getTotalValue()));
-            customerRepository.save(customer);
-        }
-
-        // delete sale
-        saleRepository.delete(saleToDelete);
+        expenseRepository.deleteById(id);
     }
 
-    // -- utils --
-    private boolean isStockManaged(Product product, StockControlType stockControl) {
-        return switch (stockControl) {
-            case GLOBAL -> true;
-            case PER_ITEM -> product.isManageStock();
-            case NONE -> false;
-        };
+    private Expense findEntityById(Long id) {
+        return expenseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found with ID: " + id));
     }
 
-    private void validateAndDecrementStock(Product product, BigDecimal requestedQuantity) {
-        if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
-            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Avaible: "
-                    + product.getStockQuantity() + ", Requested: " + requestedQuantity);
+    private ExpenseType parseExpenseType(String typeStr) {
+        if (typeStr == null || typeStr.isBlank()) {
+            return null;
         }
-
-        product.setStockQuantity(product.getStockQuantity().subtract(requestedQuantity));
-    }
-
-    private Customer validateAndGetCustomer(SaleRequest request) {
-        if (request.paymentMethod() == PaymentMethod.ON_CREDIT && request.customerId() == null) {
-            throw new BusinessException("Customer is required for ON_CREDIT sales.");
+        try {
+            return ExpenseType.valueOf(typeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid expense type: " + typeStr);
         }
-        return (request.customerId() != null) ? customerService.findEntityById(request.customerId()) : null;
-    }
-
-    private void validateStock(Product product, BigDecimal requestedQuantity) {
-        if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
-            throw new BusinessException("Insufficient stock for product: " + product.getName() +
-                    ". Available: " + product.getStockQuantity() + ", Requested: " + requestedQuantity);
-        }
-    }
-
-    private void updateCustomerDebt(Customer customer, Sale sale) {
-        if (customer != null && sale.getPaymentMethod() == PaymentMethod.ON_CREDIT) {
-            if (!customer.getCreditEnabled()) {
-                throw new BusinessException("This customer is not enabled for credit purchases.");
-            }
-            BigDecimal newDebt = customer.getDebtBalance().add(sale.getTotalValue());
-            if (customer.getCreditLimit() != null && newDebt.compareTo(customer.getCreditLimit()) > 0) {
-                throw new BusinessException("Credit limit exceeded for customer: " + customer.getName());
-            }
-            customer.setDebtBalance(newDebt);
-            customer.setLastCreditPurchaseAt(sale.getSaleDate());
-        }
-    }
-
-    private Sort createSort(String orderBy) {
-        if (orderBy == null || orderBy.isBlank()) {
-            return Sort.by(Sort.Direction.DESC, "saleDate");
-        }
-        return switch (orderBy) {
-            case "dateAsc" -> Sort.by(Sort.Direction.ASC, "saleDate");
-            case "price_desc" -> Sort.by(Sort.Direction.DESC, "totalValue");
-            case "price_asc" -> Sort.by(Sort.Direction.ASC, "totalValue");
-            case "customer_asc" -> Sort.by(Sort.Direction.ASC, "customer.name");
-            case "customer_desc" -> Sort.by(Sort.Direction.DESC, "customer.name");
-            default -> Sort.by(Sort.Direction.DESC, "saleDate");
-        };
     }
 }
