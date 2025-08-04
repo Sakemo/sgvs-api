@@ -21,15 +21,17 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          * Calculates the gross total of sales based on a set of filters.
          */
         @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s " +
-                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " + // << Query de data simplificada
+                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
                         "AND (:customerId IS NULL OR s.customer.id = :customerId) " +
                         "AND (:paymentMethod IS NULL OR s.paymentMethod = :paymentMethod) " +
+                        "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
                         "AND (:productId IS NULL OR EXISTS (SELECT 1 FROM SaleItem si WHERE si.sale = s AND si.product.id = :productId))")
         BigDecimal getGrossTotalWithFilters(
                         @Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate,
                         @Param("customerId") Long customerId,
                         @Param("paymentMethod") PaymentMethod paymentMethod,
+                        @Param("paymentStatus") PaymentStatus paymentStatus,
                         @Param("productId") Long productId);
 
         /**

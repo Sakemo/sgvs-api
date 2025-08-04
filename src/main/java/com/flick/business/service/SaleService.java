@@ -94,14 +94,21 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public Page<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, Long productId, String orderBy, int page, int size) {
+            String paymentMethodStr,
+            String paymentStatusStr,
+            Long productId, String orderBy, int page, int size) {
+
         PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
                 : null;
+
+        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
+                : null;
+
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Specification<Sale> spec = SaleSpecification.withFilters(startDate, endDate, customerId, paymentMethod,
-                productId);
+                paymentStatus, productId);
 
         Page<Sale> salePage = saleRepository.findAll(spec, pageable);
         return salePage.map(SaleResponse::fromEntity);
@@ -109,8 +116,11 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public BigDecimal getGrossTotal(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
-            String paymentMethodStr, Long productId) {
+            String paymentMethodStr, String paymentStatusStr, Long productId) {
         PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
+                : null;
+
+        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
                 : null;
 
         ZonedDateTime effectiveStartDate = (startDate != null)
@@ -126,6 +136,7 @@ public class SaleService {
                 effectiveEndDate,
                 customerId,
                 paymentMethod,
+                paymentStatus,
                 productId);
     }
 
