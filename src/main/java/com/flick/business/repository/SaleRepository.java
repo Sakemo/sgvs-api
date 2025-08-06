@@ -90,4 +90,22 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          */
         List<Sale> findByCustomerIdAndPaymentStatus(Long customerId, PaymentStatus paymentStatus);
 
+        /**
+         * Calculates the total cost of goods sold (COGS) for all sales within a
+         * specific date range.
+         * This is done by summing the product of quantity and the product's cost price
+         * for each sale item.
+         * 
+         * @param startDate The start of the date range.
+         * @param endDate   The end of the date range.
+         * @return The total COGS as a BigDecimal, or 0 if no sales are found.
+         */
+        @Query("SELECT COALESCE(SUM(si.quantity * si.product.costPrice), 0) " +
+                        "FROM SaleItem si " +
+                        "WHERE si.sale.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND si.product.costPrice IS NOT NULL")
+        BigDecimal sumTotalCostOfGoodsSoldBetween(
+                        @Param("startDate") ZonedDateTime startDate,
+                        @Param("endDate") ZonedDateTime endDate);
+
 }
