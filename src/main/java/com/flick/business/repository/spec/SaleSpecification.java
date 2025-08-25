@@ -34,7 +34,6 @@ public class SaleSpecification {
             if (startDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("saleDate"), startDate));
             }
-            // ... (resto dos if's para customerId, paymentMethod, etc.)
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("saleDate"), endDate));
             }

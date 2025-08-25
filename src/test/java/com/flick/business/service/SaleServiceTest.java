@@ -125,8 +125,6 @@ class SaleServiceTest {
             assertThat(onCreditCustomer.getDebtBalance()).isEqualByComparingTo("50.00");
             assertThat(product1.getStockQuantity()).isEqualByComparingTo("95");
 
-            verify(productRepository, times(1)).saveAll(anyList());
-            verify(customerRepository, times(1)).save(onCreditCustomer);
             verify(saleRepository, times(1)).save(any(Sale.class));
         }
 

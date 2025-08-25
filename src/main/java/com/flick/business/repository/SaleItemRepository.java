@@ -29,8 +29,8 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        COALESCE(SUM(si.quantity * si.unit_price), 0) AS total_revenue " +
                         "    FROM products p " +
                         "    LEFT JOIN sale_items si ON p.id = si.product_id " +
-                        "    LEFT JOIN sales s ON si.sale_id = s.id " +
-                        "    WHERE s.sale_date BETWEEN :startDate AND :endDate " +
+                        "    LEFT JOIN sales s ON si.sale_id = s.id AND s.sale_date BETWEEN :startDate AND :endDate " +
+                        "    WHERE p.active = true " +
                         "    GROUP BY p.id, p.name " +
                         "), " +
                         "TotalRevenue AS ( " +
@@ -41,10 +41,10 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        pr.product_id, " +
                         "        pr.product_name, " +
                         "        pr.total_revenue, " +
-                        "        (pr.total_revenue / tr.overall_total) * 100 AS percentage_of_total " +
+                        "        CASE WHEN tr.overall_total > 0 THEN (pr.total_revenue / tr.overall_total) * 100 ELSE 0 END AS percentage_of_total "
+                        +
                         "    FROM ProductRevenue pr, TotalRevenue tr " +
-                        "    WHERE tr.overall_total > 0 " +
-                        "    ORDER BY total_revenue DESC " +
+                        "    ORDER BY pr.total_revenue DESC " +
                         "), " +
                         "CumulativeContribution AS ( " +
                         "    SELECT " +
@@ -52,7 +52,7 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        product_name, " +
                         "        total_revenue, " +
                         "        percentage_of_total, " +
-                        "        SUM(percentage_of_total) OVER (ORDER BY total_revenue DESC) AS cumulative_percentage "
+                        "        SUM(percentage_of_total) OVER (ORDER BY total_revenue DESC, product_name ASC) AS cumulative_percentage "
                         +
                         "    FROM ProductContribution " +
                         ") " +
@@ -67,7 +67,8 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        WHEN cumulative_percentage <= 95 THEN 'B' " +
                         "        ELSE 'C' " +
                         "    END AS abc_class " +
-                        "FROM CumulativeContribution", nativeQuery = true)
+                        "FROM CumulativeContribution " +
+                        "ORDER BY total_revenue DESC, product_name ASC", nativeQuery = true)
         List<Object[]> performAbcAnalysis(@Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate);
 }
