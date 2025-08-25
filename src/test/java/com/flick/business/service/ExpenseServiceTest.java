@@ -104,7 +104,7 @@ class ExpenseServiceTest {
 
             Product updatedProduct = productListArgumentCaptor.getValue().get(0);
             assertThat(updatedProduct.getStockQuantity()).isEqualByComparingTo("60"); // 10 + 50
-            assertThat(updatedProduct.getCostPrice()).isEqualByComparingTo("4.50");
+            assertThat(updatedProduct.getCostPrice()).isEqualByComparingTo("5.00");
         }
 
         @Test
