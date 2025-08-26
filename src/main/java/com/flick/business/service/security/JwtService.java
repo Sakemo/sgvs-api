@@ -17,12 +17,9 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-
-    // The secret key will be injected from application.properties
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
-    // The token expiration time will also come from application.properties
     @Value("${application.security.jwt.expiration}")
     private long jwtExpiration;
 
