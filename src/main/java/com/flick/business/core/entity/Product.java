@@ -38,6 +38,9 @@ public class Product {
     @Column(name = "cost_price")
     private BigDecimal costPrice;
 
+    @Column(name = "minimum_stock")
+    private Integer minimumStock;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "unit_of_sale", nullable = false)
     private UnitOfSale unitOfSale;

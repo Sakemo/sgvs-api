@@ -15,6 +15,8 @@ public record ProductRequest(
         @NotNull @DecimalMin("0.0") BigDecimal stockQuantity,
         @NotNull @DecimalMin("0.01") BigDecimal salePrice,
         @DecimalMin("0.0") BigDecimal costPrice,
+        @DecimalMin("0.0") BigDecimal desiredProfitMargin,
+        @DecimalMin("0") Integer minimumStock,  // ← NOVO CAMPO
         @NotNull UnitOfSale unitOfSale,
         @NotNull Boolean active,
         @NotNull Boolean managesStock,

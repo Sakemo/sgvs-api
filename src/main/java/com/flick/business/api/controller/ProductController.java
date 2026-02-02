@@ -89,4 +89,13 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/calculate-price")
+public ResponseEntity<BigDecimal> calculateSuggestedPrice(
+        @RequestParam BigDecimal costPrice,
+        @RequestParam BigDecimal desiredProfitMargin) {
+    
+    BigDecimal suggestedPrice = productService.calculateSuggestedPrice(costPrice, desiredProfitMargin);
+    return ResponseEntity.ok(suggestedPrice);
+}
+
 }

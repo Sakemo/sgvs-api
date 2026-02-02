@@ -51,6 +51,10 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    public List<Product> getLowStockProducts() {
+        return productRepository.findLowStockProducts();
+    }
+
     @Transactional
     public ProductResponse save(ProductRequest request) {
         Category category = categoryService.findEntityById(request.categoryId());
