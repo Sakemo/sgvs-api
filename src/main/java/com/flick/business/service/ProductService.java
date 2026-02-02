@@ -1,6 +1,8 @@
 package com.flick.business.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -102,6 +104,28 @@ public class ProductService {
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 
         return new PageResponse<>(productPage.map(ProductResponse::fromEntity));
+    }
+
+    public BigDecimal calculateSuggestedPrice(
+            BigDecimal costPrice,
+            BigDecimal desiredProfitMargin) {
+
+        if (costPrice == null || desiredProfitMargin == null) {
+            return null;
+        }
+
+        if (costPrice == null || costPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("INVALID COST PRICE");
+        }
+
+        BigDecimal priceWithMargin = costPrice;
+        if (desiredProfitMargin != null && desiredProfitMargin.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal marginMultiplier = BigDecimal.ONE.add(
+                    desiredProfitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+            priceWithMargin = costPrice.multiply(marginMultiplier);
+        }
+
+        return priceWithMargin.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
