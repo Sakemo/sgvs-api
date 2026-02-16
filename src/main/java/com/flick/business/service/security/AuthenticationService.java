@@ -23,7 +23,7 @@ public class AuthenticationService {
 
     /**
      * Registers a new user in the system.
-     * 
+     *
      * @param request The registration request containing username and password.
      * @return An AuthResponse containing the JWT for the newly created user.
      */
@@ -46,7 +46,7 @@ public class AuthenticationService {
 
     /**
      * Authenticates an existing user.
-     * 
+     *
      * @param request The login request containing username and password.
      * @return An AuthResponse containing the JWT upon successful authentication.
      */
@@ -56,8 +56,8 @@ public class AuthenticationService {
                         request.getUsername(),
                         request.getPassword()));
 
-        var user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow();
+        var user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found with these credentials"));
         var jwtToken = jwtService.generateToken(user);
 
         return AuthResponse.builder()

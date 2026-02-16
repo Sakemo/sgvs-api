@@ -36,13 +36,11 @@ public class CustomerService {
         Customer customer = customerMapper.toEntity(request);
 
         System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
-
         Customer savedCustomer = customerRepository.save(customer);
-
         System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
 
         return CustomerResponse.fromEntity(savedCustomer);
-    }
+        }
 
     @Transactional(readOnly = true)
     public List<CustomerResponse> getSuggestions() {

@@ -38,6 +38,9 @@ public class Product {
     @Column(name = "cost_price")
     private BigDecimal costPrice;
 
+    @Column(name= "desired_profit_margin", precision=5, scale=2)
+    private BigDecimal desiredProfitMargin;
+
     @Column(name = "minimum_stock")
     private Integer minimumStock;
 

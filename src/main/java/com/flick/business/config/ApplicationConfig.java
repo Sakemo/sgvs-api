@@ -31,8 +31,8 @@ public class ApplicationConfig implements WebMvcConfigurer {
         // We use a lambda expression to implement the 'loadUserByUsername' method.
         // It fetches the user from the database using our UserRepository.
         // If the user is not found, it throws a standard Spring Security exception.
-        return username -> userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        return usernameOrEmail -> userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
     }
 
     /**

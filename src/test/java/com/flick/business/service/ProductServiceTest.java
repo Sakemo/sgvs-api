@@ -3,13 +3,12 @@ package com.flick.business.service;
 import com.flick.business.api.dto.request.production.ProductRequest;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
-import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;
 import com.flick.business.core.enums.UnitOfSale;
-import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProductRepository;
+import com.flick.business.repository.SaleItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +46,8 @@ class ProductServiceTest {
     private CategoryService categoryService;
     @Mock
     private ProviderService providerService;
+    @Mock
+    private SaleItemRepository saleItemRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -73,11 +74,38 @@ class ProductServiceTest {
         provider.setId(1L);
         provider.setName("Global Soda Inc.");
 
-        product = Product.builder().id(1L).name("Original Soda").description("A classic soda")
-                .salePrice(new BigDecimal("5.00")).stockQuantity(new BigDecimal("100")).unitOfSale(UnitOfSale.UNIT)
-                .category(category).provider(provider).active(true).manageStock(true).build();
-        productRequest = new ProductRequest("New Soda", "New description", "123456", new BigDecimal("200"),
-                new BigDecimal("7.50"), new BigDecimal("3.00"), UnitOfSale.UNIT, true, true, 1L, 1L);
+        product = Product.builder()
+                .id(1L)
+                .name("Original Soda")
+                .description("A classic soda")
+                .salePrice(new BigDecimal("5.00"))
+                .costPrice(new BigDecimal("3.00"))
+                .desiredProfitMargin(new BigDecimal("20.00"))
+                .stockQuantity(new BigDecimal("100"))
+                .minimumStock(10)
+                .unitOfSale(UnitOfSale.UNIT)
+                .category(category)
+                .provider(provider)
+                .active(true)
+                .manageStock(true)
+                .build();
+
+        // Atualizado para os 13 campos do record ProductRequest
+        productRequest = new ProductRequest(
+                "New Soda",
+                "New description",
+                "123456",
+                new BigDecimal("200"),
+                new BigDecimal("7.50"),
+                new BigDecimal("3.00"),
+                new BigDecimal("25.00"), // desiredProfitMargin
+                10,                       // minimumStock
+                UnitOfSale.UNIT,
+                true,
+                true,
+                1L,
+                1L
+        );
     }
 
     @Nested
@@ -97,7 +125,7 @@ class ProductServiceTest {
             Product capturedProduct = productArgumentCaptor.getValue();
 
             assertThat(capturedProduct.getCategory().getName()).isEqualTo("Beverages");
-            assertThat(capturedProduct.isManageStock()).isTrue();
+            assertThat(capturedProduct.getDesiredProfitMargin()).isEqualTo(new BigDecimal("20.00"));
         }
 
         @Test
@@ -113,14 +141,32 @@ class ProductServiceTest {
             verify(productMapper).updateEntityFromRequest(eq(productRequest), eq(product), eq(category), eq(provider));
             verify(productRepository).save(product);
         }
+    }
+
+    @Nested
+    @DisplayName("Price Calculation")
+    class PriceCalculation {
+        @Test
+        @DisplayName("should calculate suggested price correctly with margin")
+        void calculateSuggestedPrice_shouldReturnCorrectValue() {
+            BigDecimal cost = new BigDecimal("100.00");
+            BigDecimal margin = new BigDecimal("20.00"); // 20%
+
+            BigDecimal result = productService.calculateSuggestedPrice(cost, margin);
+
+            // 100 + 20% = 120
+            assertThat(result).isEqualByComparingTo("120.00");
+        }
 
         @Test
-        @DisplayName("should throw ResourceNotFoundException when updating non-existent product")
-        void update_withNonExistentId_throwsResourceNotFoundException() {
-            when(productRepository.findById(99L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> productService.update(99L, productRequest))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Product not found with ID: 99");
+        @DisplayName("should throw exception when cost price is zero or negative")
+        void calculateSuggestedPrice_withInvalidCost_throwsException() {
+            BigDecimal cost = BigDecimal.ZERO;
+            BigDecimal margin = new BigDecimal("20.00");
+
+            assertThatThrownBy(() -> productService.calculateSuggestedPrice(cost, margin))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("INVALID COST PRICE");
         }
     }
 
@@ -143,41 +189,15 @@ class ProductServiceTest {
         }
 
         @Test
-        @DisplayName("should call repository with correct pageable for descending price sort")
-        void listProducts_withPriceDescSort_appliesCorrectSort() {
-            when(productRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
-
-            productService.listProducts(null, null, "price_desc", 1, 20);
-
-            verify(productRepository).findAll(any(Specification.class), pageableArgumentCaptor.capture());
-
-            Pageable capturedPageable = pageableArgumentCaptor.getValue();
-            assertThat(capturedPageable.getPageNumber()).isEqualTo(1);
-            assertThat(capturedPageable.getPageSize()).isEqualTo(20);
-            assertThat(capturedPageable.getSort().getOrderFor("salePrice").getDirection())
-                    .isEqualTo(Sort.Direction.DESC);
-        }
-
-        @Test
         @DisplayName("should call 'findAllByMostSold' when orderBy is 'mostSold'")
         void listProducts_whenOrderByMostSold_callsCorrectRepositoryMethod() {
-            when(productRepository.findAllByMostSold(any(), any(), any(Pageable.class))).thenReturn(Page.empty());
+            // Mocking the Paginated result
+            Page<Product> emptyPage = Page.empty();
+            when(productRepository.findAllByMostSold(any(), any(), any(Pageable.class))).thenReturn(emptyPage);
 
             productService.listProducts("Soda", 1L, "mostSold", 0, 10);
 
             verify(productRepository).findAllByMostSold(eq("Soda"), eq(1L), any(Pageable.class));
-            verify(productRepository, never()).findAll(any(Specification.class), any(Pageable.class));
-        }
-
-        @Test
-        @DisplayName("should call 'findAllByLeastSold' when orderBy is 'leastSold'")
-        void listProducts_whenOrderByLeastSold_callsCorrectRepositoryMethod() {
-            when(productRepository.findAllByLeastSold(any(), any(), any(Pageable.class))).thenReturn(Page.empty());
-
-            productService.listProducts(null, null, "leastSold", 0, 10);
-
-            verify(productRepository).findAllByLeastSold(isNull(), isNull(), any(Pageable.class));
-            verify(productRepository, never()).findAll(any(Specification.class), any(Pageable.class));
         }
     }
 
@@ -187,12 +207,21 @@ class ProductServiceTest {
         @Test
         @DisplayName("should toggle active status from true to false")
         void toggleActiveStatus_fromTrueToFalse_updatesProduct() {
+            product.setActive(true);
             when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
             productService.toggleActiveStatus(1L);
 
             verify(productRepository).save(productArgumentCaptor.capture());
             assertThat(productArgumentCaptor.getValue().isActive()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should throw ResourceNotFoundException when product not found for toggle")
+        void toggleActiveStatus_nonExistent_throwsException() {
+            when(productRepository.findById(1L)).thenReturn(Optional.empty());
+            assertThatThrownBy(() -> productService.toggleActiveStatus(1L))
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 }

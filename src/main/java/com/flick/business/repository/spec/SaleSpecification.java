@@ -46,7 +46,7 @@ public class SaleSpecification {
             if (paymentStatus != null) {
                 predicates.add(cb.equal(root.get("paymentStatus"), paymentStatus));
             }
-            if (productId != null) {
+            if (productId != null && query != null) {
                 Subquery<Long> subquery = query.subquery(Long.class);
                 Root<SaleItem> saleItemRoot = subquery.from(SaleItem.class);
                 subquery.select(saleItemRoot.get("sale").get("id"));

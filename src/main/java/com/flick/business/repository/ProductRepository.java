@@ -36,6 +36,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("categoryId") Long categoryId,
             Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.stockQuantity <= p.minimumStock")
+    @Query("SELECT p FROM Product p WHERE p.stockQuantity < p.minimumStock")
     List<Product> findLowStockProducts();
 }

@@ -131,7 +131,7 @@ public class ProductService {
     /**
      * Finds a Product entity by its ID. This method is intended for internal use
      * by other services that need the raw entity.
-     * 
+     *
      * @param id The ID of the product to find.
      * @return The found Product entity.
      * @throws ResourceNotFoundException if the product is not found.

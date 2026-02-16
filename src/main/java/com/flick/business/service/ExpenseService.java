@@ -93,7 +93,7 @@ public class ExpenseService {
     public Product restockProduct(Long productId, BigDecimal quantity, BigDecimal newCostPrice) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
-        
+
         product.setStockQuantity(product.getStockQuantity().add(quantity));
         product.setCostPrice(newCostPrice);
         return productRepository.save(product);

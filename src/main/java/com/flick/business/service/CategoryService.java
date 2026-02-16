@@ -23,8 +23,8 @@ public class CategoryService {
     private final SaleRepository saleRepository;
 
     public Category findEntityById(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id));
+        return id != null ? categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id)) : null;
     }
 
     public List<CategoryResponse> listAll() {
@@ -50,7 +50,11 @@ public class CategoryService {
 
     @Transactional
     public void delete(Long id) {
-        if (!categoryRepository.existsById(id)) {
+      if(id == null){
+        return;
+      }
+
+      if (!categoryRepository.existsById(id)) {
             throw new ResourceNotFoundException("Category not found with ID: " + id);
         }
 

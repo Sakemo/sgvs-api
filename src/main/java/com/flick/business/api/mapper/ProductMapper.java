@@ -18,7 +18,9 @@ public class ProductMapper {
                 .manageStock(request.managesStock())
                 .salePrice(request.salePrice())
                 .costPrice(request.costPrice())
+                .desiredProfitMargin(request.desiredProfitMargin())
                 .stockQuantity(request.stockQuantity())
+                .minimumStock(request.minimumStock())
                 .unitOfSale(request.unitOfSale())
                 .category(category)
                 .provider(provider)
@@ -33,7 +35,9 @@ public class ProductMapper {
         product.setManageStock(request.managesStock());
         product.setSalePrice(request.salePrice());
         product.setCostPrice(request.costPrice());
+        product.setDesiredProfitMargin(request.desiredProfitMargin());
         product.setStockQuantity(request.stockQuantity());
+        product.setMinimumStock(request.minimumStock());
         product.setUnitOfSale(request.unitOfSale());
         product.setCategory(category);
         product.setProvider(provider);
