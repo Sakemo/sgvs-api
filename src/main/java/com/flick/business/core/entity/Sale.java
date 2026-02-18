@@ -2,6 +2,7 @@ package com.flick.business.core.entity;
 
 import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.core.enums.PaymentStatus;
+import com.flick.business.core.entity.security.User;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,10 @@ public class Sale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "total_value", nullable = false)
     private BigDecimal totalValue;

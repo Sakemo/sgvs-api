@@ -8,6 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
+import com.flick.business.core.entity.security.User;
+
 @Data
 @Entity
 @Table(name = "products")
@@ -19,6 +21,10 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false, length = 100, unique = true)
     private String name;
