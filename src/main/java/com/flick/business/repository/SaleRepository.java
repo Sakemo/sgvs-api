@@ -22,6 +22,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          */
         @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s " +
                         "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND s.user.id = :userId " +
                         "AND (:customerId IS NULL OR s.customer.id = :customerId) " +
                         "AND (:paymentMethod IS NULL OR s.paymentMethod = :paymentMethod) " +
                         "AND (:paymentStatus IS NULL OR s.paymentStatus = :paymentStatus) " +
@@ -29,6 +30,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
         BigDecimal getGrossTotalWithFilters(
                         @Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId,
                         @Param("customerId") Long customerId,
                         @Param("paymentMethod") PaymentMethod paymentMethod,
                         @Param("paymentStatus") PaymentStatus paymentStatus,
@@ -40,45 +42,55 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          */
         @Query("SELECT s.paymentMethod, SUM(s.totalValue) FROM Sale s " +
                         "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND s.user.id = :userId " +
                         "GROUP BY s.paymentMethod")
         List<Object[]> sumTotalGroupByPaymentMethodBetween(
                         @Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);;
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);;
 
         @Query("SELECT FUNCTION('TO_CHAR', s.saleDate, 'YYYY-MM-DD'), SUM(s.totalValue) " +
                         "FROM Sale s WHERE " +
-                        "(:startDate IS NULL OR s.saleDate >= :startDate) AND (:endDate IS NULL OR s.saleDate <= :endDate) "
+                        "(:startDate IS NULL OR s.saleDate >= :startDate) AND (:endDate IS NULL OR s.saleDate <= :endDate) " +
+                        "AND s.user.id = :userId "
                         +
                         "GROUP BY FUNCTION('TO_CHAR', s.saleDate, 'YYYY-MM-DD')")
         List<Object[]> sumTotalGroupByDay(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
         @Query("SELECT s.customer.id, s.customer.name, SUM(s.totalValue) " +
                         "FROM Sale s WHERE " +
-                        "(:startDate IS NULL OR s.saleDate >= :startDate) AND (:endDate IS NULL OR s.saleDate <= :endDate) "
+                        "(:startDate IS NULL OR s.saleDate >= :startDate) AND (:endDate IS NULL OR s.saleDate <= :endDate) " +
+                        "AND s.user.id = :userId "
                         +
                         "GROUP BY s.customer.id, s.customer.name")
         List<Object[]> sumTotalGroupByCustomer(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
-        @Query("SELECT s.customer.id FROM Sale s WHERE s.customer IS NOT NULL GROUP BY s.customer.id ORDER BY COUNT(s.id) DESC LIMIT 3")
-        List<Long> findTop3MostFrequentCustomerIds();
+        @Query("SELECT s.customer.id FROM Sale s WHERE s.customer IS NOT NULL AND s.user.id = :userId GROUP BY s.customer.id ORDER BY COUNT(s.id) DESC LIMIT 3")
+        List<Long> findTop3MostFrequentCustomerIds(@Param("userId") Long userId);
 
-        @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate")
+        @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate AND s.user.id = :userId")
         BigDecimal sumTotalValueBetweenDates(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
         @Query("SELECT CAST(s.saleDate AS date), SUM(s.totalValue) FROM Sale s " +
                         "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND s.user.id = :userId " +
                         "GROUP BY CAST(s.saleDate AS date) ORDER BY CAST(s.saleDate AS date)")
         List<Object[]> findRevenueByDay(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
-        @Query("SELECT COUNT(s.id) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate")
-        Long countSalesBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate);
+        @Query("SELECT COUNT(s.id) FROM Sale s WHERE s.saleDate BETWEEN :startDate AND :endDate AND s.user.id = :userId")
+        Long countSalesBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
-        @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId")
-        long countByCategoryId(@Param("categoryId") Long categoryId);
+        @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId AND p.user.id = :userId")
+        long countByCategoryId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
 
         /**
          * Finds all sales for a specific customer that are pending payment.
@@ -88,7 +100,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          * @param paymentStatus The status to filter by (typically PENDING).
          * @return A list of pending sales.
          */
-        List<Sale> findByCustomerIdAndPaymentStatus(Long customerId, PaymentStatus paymentStatus);
+        List<Sale> findByCustomerIdAndPaymentStatusAndUserId(Long customerId, PaymentStatus paymentStatus, Long userId);
 
         /**
          * Calculates the total cost of goods sold (COGS) for all sales within a
@@ -103,9 +115,11 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
         @Query("SELECT COALESCE(SUM(si.quantity * si.product.costPrice), 0) " +
                         "FROM SaleItem si " +
                         "WHERE si.sale.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND si.sale.user.id = :userId " +
                         "AND si.product.costPrice IS NOT NULL")
         BigDecimal sumTotalCostOfGoodsSoldBetween(
                         @Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
 }

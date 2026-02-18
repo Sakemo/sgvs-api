@@ -5,10 +5,12 @@ import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.UnitOfSale;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.SaleItemRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,6 +50,8 @@ class ProductServiceTest {
     private ProviderService providerService;
     @Mock
     private SaleItemRepository saleItemRepository;
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
 
     @InjectMocks
     private ProductService productService;
@@ -62,6 +66,7 @@ class ProductServiceTest {
     private Product product;
     private Category category;
     private Provider provider;
+    private User user;
     private ProductRequest productRequest;
 
     @BeforeEach
@@ -73,6 +78,12 @@ class ProductServiceTest {
         provider = new Provider();
         provider.setId(1L);
         provider.setName("Global Soda Inc.");
+
+        user = User.builder()
+                .id(1L)
+                .username("test-user")
+                .password("123")
+                .build();
 
         product = Product.builder()
                 .id(1L)
@@ -106,6 +117,9 @@ class ProductServiceTest {
                 1L,
                 1L
         );
+
+        when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
+        when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
     }
 
     @Nested
@@ -193,11 +207,11 @@ class ProductServiceTest {
         void listProducts_whenOrderByMostSold_callsCorrectRepositoryMethod() {
             // Mocking the Paginated result
             Page<Product> emptyPage = Page.empty();
-            when(productRepository.findAllByMostSold(any(), any(), any(Pageable.class))).thenReturn(emptyPage);
+            when(productRepository.findAllByMostSold(any(), any(), anyLong(), any(Pageable.class))).thenReturn(emptyPage);
 
             productService.listProducts("Soda", 1L, "mostSold", 0, 10);
 
-            verify(productRepository).findAllByMostSold(eq("Soda"), eq(1L), any(Pageable.class));
+            verify(productRepository).findAllByMostSold(eq("Soda"), eq(1L), eq(1L), any(Pageable.class));
         }
     }
 

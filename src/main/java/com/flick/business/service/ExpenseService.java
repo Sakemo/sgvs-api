@@ -8,12 +8,14 @@ import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.RestockItem;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.ExpenseType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.spec.ExpenseSpecification;
+import com.flick.business.service.security.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -37,10 +39,13 @@ public class ExpenseService {
     private final ExpenseMapper expenseMapper;
     private final ProductRepository productRepository;
     private final ProductService productService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional
     public ExpenseResponse create(ExpenseRequest request) {
+        User currentUser = authenticatedUserService.getAuthenticatedUser();
         Expense expense = new Expense();
+        expense.setUser(currentUser);
         expense.setName(request.name());
         expense.setExpenseDate(request.expenseDate());
         expense.setExpenseType(request.expenseType());
@@ -111,7 +116,9 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseResponse save(ExpenseRequest request) {
+        User currentUser = authenticatedUserService.getAuthenticatedUser();
         Expense expense = expenseMapper.toEntity(request);
+        expense.setUser(currentUser);
         Expense savedExpense = expenseRepository.save(expense);
         return ExpenseResponse.fromEntity(savedExpense);
     }
@@ -128,7 +135,7 @@ public class ExpenseService {
     public PageResponse<ExpenseResponse> listAll(String name, String expenseTypeStr, ZonedDateTime startDate,
             ZonedDateTime endDate, int page, int size) {
         ExpenseType expenseType = parseExpenseType(expenseTypeStr);
-        Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType);
+        Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType, authenticatedUserService.getAuthenticatedUserId());
         Sort sort = Sort.by(Sort.Direction.DESC, "expenseDate");
         Pageable pageable = PageRequest.of(page, size, sort);
 
@@ -149,7 +156,10 @@ public class ExpenseService {
                 ? endDate
                 : ZonedDateTime.parse("9999-12-31T23:59:59Z");
 
-        return expenseRepository.sumTotalValueBetweenDates(effectiveStartDate, effectiveEndDate);
+        return expenseRepository.sumTotalValueBetweenDates(
+                effectiveStartDate,
+                effectiveEndDate,
+                authenticatedUserService.getAuthenticatedUserId());
     }
 
     @Transactional(readOnly = true)

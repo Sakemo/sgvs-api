@@ -18,6 +18,7 @@ import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.SaleRepository;
 import com.flick.business.repository.spec.SaleSpecification;
+import com.flick.business.service.security.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +45,7 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
     private final GeneralSettingsService settingsService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional
     public SaleResponse registerSale(SaleRequest request) {
@@ -108,7 +110,7 @@ public class SaleService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Specification<Sale> spec = SaleSpecification.withFilters(startDate, endDate, customerId, paymentMethod,
-                paymentStatus, productId);
+                paymentStatus, productId, authenticatedUserService.getAuthenticatedUserId());
 
         Page<Sale> salePage = saleRepository.findAll(spec, pageable);
         return salePage.map(SaleResponse::fromEntity);
@@ -134,6 +136,7 @@ public class SaleService {
         return saleRepository.getGrossTotalWithFilters(
                 effectiveStartDate,
                 effectiveEndDate,
+                authenticatedUserService.getAuthenticatedUserId(),
                 customerId,
                 paymentMethod,
                 paymentStatus,
@@ -142,7 +145,10 @@ public class SaleService {
 
     @Transactional(readOnly = true)
     public List<TotalByPaymentMethod> getTotalByPaymentMethods(ZonedDateTime startDate, ZonedDateTime endDate) {
-        List<Object[]> results = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate, endDate);
+        List<Object[]> results = saleRepository.sumTotalGroupByPaymentMethodBetween(
+                startDate,
+                endDate,
+                authenticatedUserService.getAuthenticatedUserId());
 
         return results.stream()
                 .map(res -> new TotalByPaymentMethod((PaymentMethod) res[0], (BigDecimal) res[1]))

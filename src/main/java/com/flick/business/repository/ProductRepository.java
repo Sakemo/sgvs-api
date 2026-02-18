@@ -12,30 +12,34 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
-    List<Product> findTop3ByActiveTrueOrderByNameAsc();
+    List<Product> findTop3ByActiveTrueAndUserIdOrderByNameAsc(Long userId);
 
     @Query(value = "SELECT p.* FROM products p " +
             "LEFT JOIN sale_items si ON p.id = si.product_id " +
             "WHERE (:name IS NULL OR lower(p.name) LIKE lower(concat('%', :name, '%'))) " +
             "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
+            "AND p.user_id = :userId " +
             "GROUP BY p.id " +
             "ORDER BY COALESCE(SUM(si.quantity), 0) DESC", nativeQuery = true)
     Page<Product> findAllByMostSold(
             @Param("name") String name,
             @Param("categoryId") Long categoryId,
+            @Param("userId") Long userId,
             Pageable pageable);
 
     @Query(value = "SELECT p.* FROM products p " +
             "LEFT JOIN sale_items si ON p.id = si.product_id " +
             "WHERE (:name IS NULL OR lower(p.name) LIKE lower(concat('%', :name, '%'))) " +
             "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
+            "AND p.user_id = :userId " +
             "GROUP BY p.id " +
             "ORDER BY COALESCE(SUM(si.quantity), 0) ASC", nativeQuery = true)
     Page<Product> findAllByLeastSold(
             @Param("name") String name,
             @Param("categoryId") Long categoryId,
+            @Param("userId") Long userId,
             Pageable pageable);
 
-    @Query("SELECT p FROM Product p WHERE p.stockQuantity < p.minimumStock")
-    List<Product> findLowStockProducts();
+    @Query("SELECT p FROM Product p WHERE p.stockQuantity < p.minimumStock AND p.user.id = :userId")
+    List<Product> findLowStockProducts(@Param("userId") Long userId);
 }

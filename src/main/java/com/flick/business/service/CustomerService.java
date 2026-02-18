@@ -14,12 +14,14 @@ import com.flick.business.api.dto.request.commercial.CustomerRequest;
 import com.flick.business.api.dto.response.commercial.CustomerResponse;
 import com.flick.business.api.mapper.CustomerMapper;
 import com.flick.business.core.entity.Customer;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.SaleRepository;
 import com.flick.business.repository.spec.CustomerSpecification;
+import com.flick.business.service.security.AuthenticatedUserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,11 +31,14 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
     private final SaleRepository saleRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional
     public CustomerResponse save(CustomerRequest request) {
+        User currentUser = authenticatedUserService.getAuthenticatedUser();
         validateTaxId(request.taxId(), null);
         Customer customer = customerMapper.toEntity(request);
+        customer.setUser(currentUser);
 
         System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
         Customer savedCustomer = customerRepository.save(customer);
@@ -44,7 +49,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public List<CustomerResponse> getSuggestions() {
-        List<Long> topIds = saleRepository.findTop3MostFrequentCustomerIds();
+        List<Long> topIds = saleRepository.findTop3MostFrequentCustomerIds(authenticatedUserService.getAuthenticatedUserId());
 
         List<Customer> customers;
         if (!topIds.isEmpty()) {
@@ -75,7 +80,7 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public List<CustomerResponse> listAll(String name, Boolean isActive, Boolean hasDebt, String orderBy) {
         Sort sort = createSort(orderBy);
-        Specification<Customer> spec = CustomerSpecification.withFilters(name, isActive, hasDebt);
+        Specification<Customer> spec = CustomerSpecification.withFilters(name, isActive, hasDebt, authenticatedUserService.getAuthenticatedUserId());
         List<Customer> customers = customerRepository.findAll(spec, sort);
         return customers.stream()
                 .map(CustomerResponse::fromEntity)

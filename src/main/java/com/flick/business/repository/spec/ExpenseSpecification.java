@@ -13,9 +13,11 @@ import jakarta.persistence.criteria.Predicate;
 
 public class ExpenseSpecification {
     public static Specification<Expense> withFilters(String name, ZonedDateTime startDate, ZonedDateTime endDate,
-            ExpenseType expenseType) {
+            ExpenseType expenseType, Long userId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("user").get("id"), userId));
+
             if (name != null && !name.trim().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             }

@@ -8,9 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CustomerSpecification {
-    public static Specification<Customer> withFilters(String name, Boolean isActive, Boolean hasDebt) {
+    public static Specification<Customer> withFilters(String name, Boolean isActive, Boolean hasDebt, Long userId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("user").get("id"), userId));
 
             if (name != null && !name.trim().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));

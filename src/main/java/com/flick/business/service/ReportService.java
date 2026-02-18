@@ -14,6 +14,7 @@ import com.flick.business.api.dto.response.reports.FinancialSummaryResponse;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.SaleRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,13 +24,15 @@ public class ReportService {
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
     private final ExpenseRepository expenseRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional(readOnly = true)
     public FinancialSummaryResponse getFinancialSummary(ZonedDateTime startDate, ZonedDateTime endDate) {
         // search expenses
-        BigDecimal totalRevenue = saleRepository.sumTotalValueBetweenDates(startDate, endDate);
-        BigDecimal totalCogs = saleRepository.sumTotalCostOfGoodsSoldBetween(startDate, endDate);
-        BigDecimal totalExpenses = expenseRepository.sumTotalValueBetweenDates(startDate, endDate);
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        BigDecimal totalRevenue = saleRepository.sumTotalValueBetweenDates(startDate, endDate, userId);
+        BigDecimal totalCogs = saleRepository.sumTotalCostOfGoodsSoldBetween(startDate, endDate, userId);
+        BigDecimal totalExpenses = expenseRepository.sumTotalValueBetweenDates(startDate, endDate, userId);
 
         // calculate profits
         BigDecimal grossProfit = totalRevenue.subtract(totalCogs);

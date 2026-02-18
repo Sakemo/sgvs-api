@@ -21,10 +21,12 @@ import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Provider;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.spec.ProductSpecification;
+import com.flick.business.service.security.AuthenticatedUserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,16 +38,18 @@ public class ProductService {
     private final CategoryService categoryService;
     private final ProviderService providerService;
     private final SaleItemRepository saleItemRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getSuggestions() {
         List<Long> topIds = saleItemRepository.findTop3MostSoldProductIds();
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
 
         List<Product> products;
         if (!topIds.isEmpty()) {
             products = productRepository.findAllById(topIds);
         } else {
-            products = productRepository.findTop3ByActiveTrueOrderByNameAsc();
+            products = productRepository.findTop3ByActiveTrueAndUserIdOrderByNameAsc(userId);
         }
 
         return products.stream()
@@ -54,15 +58,17 @@ public class ProductService {
     }
 
     public List<Product> getLowStockProducts() {
-        return productRepository.findLowStockProducts();
+        return productRepository.findLowStockProducts(authenticatedUserService.getAuthenticatedUserId());
     }
 
     @Transactional
     public ProductResponse save(ProductRequest request) {
+        User currentUser = authenticatedUserService.getAuthenticatedUser();
         Category category = categoryService.findEntityById(request.categoryId());
         Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
 
         Product product = productMapper.toEntity(request, category, provider);
+        product.setUser(currentUser);
         Product savedProduct = productRepository.save(product);
         return ProductResponse.fromEntity(savedProduct);
     }
@@ -83,15 +89,16 @@ public class ProductService {
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> listProducts(String name, Long categoryId, String orderBy, int page,
             int size) {
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
 
         if ("mostSold".equalsIgnoreCase(orderBy) || "leastSold".equalsIgnoreCase(orderBy)) {
             Pageable pageable = PageRequest.of(page, size);
             Page<Product> productPage;
 
             if ("mostSold".equalsIgnoreCase(orderBy)) {
-                productPage = productRepository.findAllByMostSold(name, categoryId, pageable);
+                productPage = productRepository.findAllByMostSold(name, categoryId, userId, pageable);
             } else {
-                productPage = productRepository.findAllByLeastSold(name, categoryId, pageable);
+                productPage = productRepository.findAllByLeastSold(name, categoryId, userId, pageable);
             }
 
             return new PageResponse<>(productPage.map(ProductResponse::fromEntity));
@@ -99,7 +106,7 @@ public class ProductService {
 
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        Specification<Product> spec = ProductSpecification.withFilters(name, categoryId);
+        Specification<Product> spec = ProductSpecification.withFilters(name, categoryId, userId);
 
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 

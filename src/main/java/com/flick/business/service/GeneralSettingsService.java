@@ -3,6 +3,7 @@ package com.flick.business.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.flick.business.service.security.AuthenticatedUserService;
 import com.flick.business.api.dto.request.settings.GeneralSettingsRequest;
 import com.flick.business.api.dto.response.GeneralSettingsResponse;
 import com.flick.business.api.mapper.GeneralSettingsMapper;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GeneralSettingsService {
+    private final AuthenticatedUserService authenticatedUserService;
     private final GeneralSettingsRepository settingsRepository;
     private final GeneralSettingsMapper settingsMapper;
     private static final Long SETTINGS_ID = 1L;
@@ -36,17 +38,23 @@ public class GeneralSettingsService {
 
     /**
      * Search for the settings entity
-     * 
+     *
      * @return GeneralSettings entity
      */
-    @Transactional(readOnly = true)
     public GeneralSettings findEntity() {
-        return settingsRepository.findById(SETTINGS_ID).get();
-    }
+    Long userId = authenticatedUserService.getAuthenticatedUserId();
+    // Tenta achar a config do usuário, se não existir, cria uma nova para ele
+    return settingsRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                GeneralSettings newSettings = new GeneralSettings();
+                newSettings.setUser(authenticatedUserService.getAuthenticatedUser());
+                return settingsRepository.save(newSettings);
+            });
+}
 
     /**
      * Save or update settings
-     * 
+     *
      * @param request - entity to be updated
      * @return GeneralSettingsRequest updated
      */

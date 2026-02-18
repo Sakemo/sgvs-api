@@ -20,10 +20,12 @@ public class SaleSpecification {
             Long customerId,
             PaymentMethod paymentMethod,
             PaymentStatus paymentStatus,
-            Long productId) {
-
+            Long productId,
+            Long userId
+          ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("user").get("id"), userId));
 
             if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
                 root.fetch("customer", JoinType.LEFT);

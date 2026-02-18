@@ -3,10 +3,12 @@ package com.flick.business.service;
 import com.flick.business.api.dto.request.production.CategoryRequest;
 import com.flick.business.api.dto.response.production.CategoryResponse;
 import com.flick.business.core.entity.Category;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CategoryRepository;
 import com.flick.business.repository.SaleRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final SaleRepository saleRepository;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public Category findEntityById(Long id) {
         return id != null ? categoryRepository.findById(id)
@@ -34,7 +37,9 @@ public class CategoryService {
     }
 
     public CategoryResponse save(CategoryRequest request) {
+        User currentUser = authenticatedUserService.getAuthenticatedUser();
         Category category = new Category();
+        category.setUser(currentUser);
         category.setName(request.name());
         Category savedCategory = categoryRepository.save(category);
         return CategoryResponse.fromEntity(savedCategory);
@@ -58,7 +63,7 @@ public class CategoryService {
             throw new ResourceNotFoundException("Category not found with ID: " + id);
         }
 
-        if (saleRepository.countByCategoryId(id) > 0) {
+        if (saleRepository.countByCategoryId(id, authenticatedUserService.getAuthenticatedUserId()) > 0) {
             throw new BusinessException("Cannot delete category as it is currently associated with existing sales.");
         }
 

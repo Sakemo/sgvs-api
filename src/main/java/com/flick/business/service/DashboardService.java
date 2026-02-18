@@ -22,6 +22,7 @@ import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.SaleRepository;
 import com.flick.business.repository.CustomerRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -31,9 +32,11 @@ public class DashboardService {
         private final ExpenseRepository expenseRepository;
         private final SaleItemRepository saleItemRepository;
         private final CustomerRepository customerRepository;
+        private final AuthenticatedUserService authenticatedUserService;
 
         @Transactional(readOnly = true)
         public DashboardResponse getDashboardSummary(ZonedDateTime startDate, ZonedDateTime endDate) {
+                Long userId = authenticatedUserService.getAuthenticatedUserId();
                 long durationDays = Duration.between(startDate, endDate).toDays() + 1;
                 ZonedDateTime previousStartDate = startDate.minusDays(durationDays);
                 ZonedDateTime previousEndDate = endDate.minusDays(durationDays);
@@ -41,23 +44,24 @@ public class DashboardService {
                 Long previousNewCustomers = customerRepository.countNewCustomersBetween(previousStartDate,
                                 previousEndDate);
 
-                Long currentSaleCount = saleRepository.countSalesBetween(startDate, endDate);
-                Long previousSaleCount = saleRepository.countSalesBetween(previousStartDate, previousEndDate);
+                Long currentSaleCount = saleRepository.countSalesBetween(startDate, endDate, userId);
+                Long previousSaleCount = saleRepository.countSalesBetween(previousStartDate, previousEndDate, userId);
 
-                BigDecimal currentGrossRevenue = saleRepository.sumTotalValueBetweenDates(startDate, endDate);
+                BigDecimal currentGrossRevenue = saleRepository.sumTotalValueBetweenDates(startDate, endDate, userId);
                 BigDecimal previousGrossRevenue = saleRepository.sumTotalValueBetweenDates(previousStartDate,
-                                previousEndDate);
+                                previousEndDate, userId);
 
-                BigDecimal currentTotalExpenses = expenseRepository.sumTotalValueBetweenDates(startDate, endDate);
+                BigDecimal currentTotalExpenses = expenseRepository.sumTotalValueBetweenDates(startDate, endDate,
+                                userId);
                 BigDecimal previousTotalExpenses = expenseRepository.sumTotalValueBetweenDates(previousStartDate,
-                                previousEndDate);
+                                previousEndDate, userId);
 
                 List<Object[]> salesByPaymentMethodRaw = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate,
-                                endDate);
+                                endDate, userId);
                 List<Object[]> topSellingProductsRaw = saleItemRepository.findTop5SellingProductsByRevenue(startDate,
                                 endDate);
-                List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate);
-                List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate);
+                List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate, userId);
+                List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate, userId);
                 new BigDecimal(previousNewCustomers);
 
                 BigDecimal currentAverageTicket = (currentSaleCount > 0)
