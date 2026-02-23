@@ -8,9 +8,8 @@ import com.flick.business.api.dto.request.settings.GeneralSettingsRequest;
 import com.flick.business.api.dto.response.GeneralSettingsResponse;
 import com.flick.business.api.mapper.GeneralSettingsMapper;
 import com.flick.business.core.entity.GeneralSettings;
+import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.repository.GeneralSettingsRepository;
-
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -20,7 +19,7 @@ public class GeneralSettingsService {
     private final GeneralSettingsRepository settingsRepository;
     private final GeneralSettingsMapper settingsMapper;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GeneralSettingsResponse getSettings() {
         return GeneralSettingsResponse.fromEntity(findEntity());
     }
@@ -30,16 +29,17 @@ public class GeneralSettingsService {
      *
      * @return GeneralSettings entity
      */
+    @Transactional
     public GeneralSettings findEntity() {
-    Long userId = authenticatedUserService.getAuthenticatedUserId();
-    // Tenta achar a config do usuário, se não existir, cria uma nova para ele
-    return settingsRepository.findByUserId(userId)
-            .orElseGet(() -> {
-                GeneralSettings newSettings = new GeneralSettings();
-                newSettings.setUser(authenticatedUserService.getAuthenticatedUser());
-                return settingsRepository.save(newSettings);
-            });
-}
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return settingsRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    GeneralSettings newSettings = new GeneralSettings();
+                    newSettings.setUser(authenticatedUserService.getAuthenticatedUser());
+                    newSettings.setStockControlType(StockControlType.PER_ITEM);
+                    return settingsRepository.save(newSettings);
+                });
+    }
 
     /**
      * Save or update settings

@@ -176,7 +176,8 @@ public class ExpenseService {
     }
 
     private Expense findEntityById(Long id) {
-        return expenseRepository.findById(id)
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return expenseRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with ID: " + id));
     }
 

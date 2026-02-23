@@ -118,8 +118,8 @@ class ProductServiceTest {
                 1L
         );
 
-        when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
-        when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
+        lenient().when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
+        lenient().when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
     }
 
     @Nested
@@ -145,7 +145,7 @@ class ProductServiceTest {
         @Test
         @DisplayName("should update an existing product successfully")
         void update_withValidRequest_shouldUpdateProduct() {
-            when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+            when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(product));
             when(categoryService.findEntityById(1L)).thenReturn(category);
             when(providerService.findById(1L)).thenReturn(provider);
             when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -222,7 +222,7 @@ class ProductServiceTest {
         @DisplayName("should toggle active status from true to false")
         void toggleActiveStatus_fromTrueToFalse_updatesProduct() {
             product.setActive(true);
-            when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+            when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(product));
 
             productService.toggleActiveStatus(1L);
 
@@ -233,7 +233,7 @@ class ProductServiceTest {
         @Test
         @DisplayName("should throw ResourceNotFoundException when product not found for toggle")
         void toggleActiveStatus_nonExistent_throwsException() {
-            when(productRepository.findById(1L)).thenReturn(Optional.empty());
+            when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> productService.toggleActiveStatus(1L))
                     .isInstanceOf(ResourceNotFoundException.class);
         }

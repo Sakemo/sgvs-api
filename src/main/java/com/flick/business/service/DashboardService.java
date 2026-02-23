@@ -42,7 +42,7 @@ public class DashboardService {
                 ZonedDateTime previousEndDate = endDate.minusDays(durationDays);
 
                 Long previousNewCustomers = customerRepository.countNewCustomersBetween(previousStartDate,
-                                previousEndDate);
+                                previousEndDate, userId);
 
                 Long currentSaleCount = saleRepository.countSalesBetween(startDate, endDate, userId);
                 Long previousSaleCount = saleRepository.countSalesBetween(previousStartDate, previousEndDate, userId);
@@ -59,7 +59,7 @@ public class DashboardService {
                 List<Object[]> salesByPaymentMethodRaw = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate,
                                 endDate, userId);
                 List<Object[]> topSellingProductsRaw = saleItemRepository.findTop5SellingProductsByRevenue(startDate,
-                                endDate);
+                                endDate, userId);
                 List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate, userId);
                 List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate, userId);
                 new BigDecimal(previousNewCustomers);
@@ -71,7 +71,7 @@ public class DashboardService {
                                 ? previousGrossRevenue.divide(new BigDecimal(previousSaleCount), 2,
                                                 RoundingMode.HALF_UP)
                                 : BigDecimal.ZERO;
-                BigDecimal currentTotalReceivables = customerRepository.findTotalDebtBalance();
+                BigDecimal currentTotalReceivables = customerRepository.findTotalDebtBalance(userId);
                 BigDecimal previousTotalReceivables = BigDecimal.ZERO;
 
                 MetricCardData totalReceivablesCard = buildMetricCard(currentTotalReceivables,

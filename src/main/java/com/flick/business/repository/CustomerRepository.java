@@ -13,20 +13,23 @@ import org.springframework.data.repository.query.Param;
 import com.flick.business.core.entity.Customer;
 
 public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSpecificationExecutor<Customer> {
-    /**
+    Optional<Customer> findByIdAndUserId(Long id, Long userId);
+
+  /**
      * Finds a customer by their tax ID.
-     * 
+     *
      * @param taxId The tax ID to search for.
      * @return An Optional containing the found customer or an empty Optional if not
      *         found.
      */
-    Optional<Customer> findByTaxId(String taxId);
+    Optional<Customer> findByTaxIdAndUserId(String taxId, Long userId);
 
-    List<Customer> findTop3ByActiveTrueOrderByNameAsc();
+    List<Customer> findTop3ByActiveTrueAndUserIdOrderByNameAsc(Long userId);
 
-    @Query("SELECT COALESCE(SUM(c.debtBalance), 0) FROM Customer c WHERE c.active = true")
-    BigDecimal findTotalDebtBalance();
+    @Query("SELECT COALESCE(SUM(c.debtBalance), 0) FROM Customer c WHERE c.active = true AND c.user.id = :userId")
+    BigDecimal findTotalDebtBalance(@Param("userId") Long userId);
 
-    @Query("SELECT COUNT(c.id) FROM Customer c WHERE c.createdAt BETWEEN :startDate AND :endDate")
-    Long countNewCustomersBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate);
+    @Query("SELECT COUNT(c.id) FROM Customer c WHERE c.createdAt BETWEEN :startDate AND :endDate AND c.user.id = :userId")
+    Long countNewCustomersBetween(@Param("startDate") ZonedDateTime startDate, @Param("endDate") ZonedDateTime endDate,
+            @Param("userId") Long userId);
 }

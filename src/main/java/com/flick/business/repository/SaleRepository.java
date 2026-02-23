@@ -13,9 +13,11 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificationExecutor<Sale> {
+        Optional<Sale> findByIdAndUserId(Long id, Long userId);
 
         /**
          * Calculates the gross total of sales based on a set of filters.
@@ -95,7 +97,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
         /**
          * Finds all sales for a specific customer that are pending payment.
          * This is used to populate the customer's payment settlement modal.
-         * 
+         *
          * @param customerId    The ID of the customer.
          * @param paymentStatus The status to filter by (typically PENDING).
          * @return A list of pending sales.
@@ -107,7 +109,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          * specific date range.
          * This is done by summing the product of quantity and the product's cost price
          * for each sale item.
-         * 
+         *
          * @param startDate The start of the date range.
          * @param endDate   The end of the date range.
          * @return The total COGS as a BigDecimal, or 0 if no sales are found.

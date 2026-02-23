@@ -28,115 +28,120 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CustomerService {
-    private final CustomerRepository customerRepository;
-    private final CustomerMapper customerMapper;
-    private final SaleRepository saleRepository;
-    private final AuthenticatedUserService authenticatedUserService;
+  private final CustomerRepository customerRepository;
+  private final CustomerMapper customerMapper;
+  private final SaleRepository saleRepository;
+  private final AuthenticatedUserService authenticatedUserService;
 
-    @Transactional
-    public CustomerResponse save(CustomerRequest request) {
-        User currentUser = authenticatedUserService.getAuthenticatedUser();
-        validateTaxId(request.taxId(), null);
-        Customer customer = customerMapper.toEntity(request);
-        customer.setUser(currentUser);
+  @Transactional
+  public CustomerResponse save(CustomerRequest request) {
+    User currentUser = authenticatedUserService.getAuthenticatedUser();
+    validateTaxId(request.taxId(), null);
+    Customer customer = customerMapper.toEntity(request);
+    customer.setUser(currentUser);
 
-        System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
-        Customer savedCustomer = customerRepository.save(customer);
-        System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
+    System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
+    Customer savedCustomer = customerRepository.save(customer);
+    System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
 
-        return CustomerResponse.fromEntity(savedCustomer);
-        }
+    return CustomerResponse.fromEntity(savedCustomer);
+  }
 
-    @Transactional(readOnly = true)
-    public List<CustomerResponse> getSuggestions() {
-        List<Long> topIds = saleRepository.findTop3MostFrequentCustomerIds(authenticatedUserService.getAuthenticatedUserId());
+  @Transactional(readOnly = true)
+  public List<CustomerResponse> getSuggestions() {
+    List<Long> topIds = saleRepository
+        .findTop3MostFrequentCustomerIds(authenticatedUserService.getAuthenticatedUserId());
 
-        List<Customer> customers;
-        if (!topIds.isEmpty()) {
-            customers = customerRepository.findAllById(topIds);
-        } else {
-            customers = customerRepository.findTop3ByActiveTrueOrderByNameAsc();
-        }
-
-        return customers.stream()
-                .map(CustomerResponse::fromEntity)
-                .collect(Collectors.toList());
+    List<Customer> customers;
+    if (!topIds.isEmpty()) {
+      customers = customerRepository.findAllById(topIds);
+    } else {
+      customers = customerRepository.findTop3ByActiveTrueAndUserIdOrderByNameAsc(
+          authenticatedUserService.getAuthenticatedUserId());
     }
 
-    @Transactional
-    public CustomerResponse update(Long id, CustomerRequest request) {
-        Customer existingCustomer = findEntityById(id);
-        validateTaxId(request.taxId(), id);
+    return customers.stream()
+        .map(CustomerResponse::fromEntity)
+        .collect(Collectors.toList());
+  }
 
-        System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
+  @Transactional
+  public CustomerResponse update(Long id, CustomerRequest request) {
+    Customer existingCustomer = findEntityById(id);
+    validateTaxId(request.taxId(), id);
 
-        customerMapper.updateEntityFromRequest(request, existingCustomer);
-        Customer updatedCustomer = customerRepository.save(existingCustomer);
+    System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
 
-        System.out.println("SERVICE: Entity after save. Credit Limit: " + updatedCustomer.getCreditLimit());
-        return CustomerResponse.fromEntity(updatedCustomer);
+    customerMapper.updateEntityFromRequest(request, existingCustomer);
+    Customer updatedCustomer = customerRepository.save(existingCustomer);
+
+    System.out.println("SERVICE: Entity after save. Credit Limit: " + updatedCustomer.getCreditLimit());
+    return CustomerResponse.fromEntity(updatedCustomer);
+  }
+
+  @Transactional(readOnly = true)
+  public List<CustomerResponse> listAll(String name, Boolean isActive, Boolean hasDebt, String orderBy) {
+    Sort sort = createSort(orderBy);
+    Specification<Customer> spec = CustomerSpecification.withFilters(name, isActive, hasDebt,
+        authenticatedUserService.getAuthenticatedUserId());
+    List<Customer> customers = customerRepository.findAll(spec, sort);
+    return customers.stream()
+        .map(CustomerResponse::fromEntity)
+        .collect(Collectors.toList());
+  }
+
+  @Transactional
+  public void toggleActiveStatus(Long id, boolean active) {
+    Customer customer = findEntityById(id);
+    if (!active && customer.getDebtBalance().compareTo(BigDecimal.ZERO) > 0) {
+      throw new BusinessException("Cannot deactivate a customer with an outstanding debt balance.");
     }
+    customer.setActive(active);
+    customerRepository.save(customer);
+  }
 
-    @Transactional(readOnly = true)
-    public List<CustomerResponse> listAll(String name, Boolean isActive, Boolean hasDebt, String orderBy) {
-        Sort sort = createSort(orderBy);
-        Specification<Customer> spec = CustomerSpecification.withFilters(name, isActive, hasDebt, authenticatedUserService.getAuthenticatedUserId());
-        List<Customer> customers = customerRepository.findAll(spec, sort);
-        return customers.stream()
-                .map(CustomerResponse::fromEntity)
-                .collect(Collectors.toList());
+  @Transactional
+  public void deletePermanently(Long id) {
+    if (!customerRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Customer not found with ID: " + id);
     }
+    customerRepository.deleteById(id);
+  }
 
-    @Transactional
-    public void toggleActiveStatus(Long id, boolean active) {
-        Customer customer = findEntityById(id);
-        if (!active && customer.getDebtBalance().compareTo(BigDecimal.ZERO) > 0) {
-            throw new BusinessException("Cannot deactivate a customer with an outstanding debt balance.");
-        }
-        customer.setActive(active);
-        customerRepository.save(customer);
+  private void validateTaxId(String taxId, Long currentCustomerId) {
+    if (taxId == null || taxId.isBlank()) {
+      return;
     }
+    Long userId = authenticatedUserService.getAuthenticatedUserId();
+    Optional<Customer> existingCustomer = customerRepository.findByTaxIdAndUserId(taxId, userId);
+    if (existingCustomer.isPresent()
+        && (currentCustomerId == null || !existingCustomer.get().getId().equals(currentCustomerId))) {
+      throw new ResourceAlreadyExistsException("A customer with this Tax ID already exists in your account.");
+    }
+  }
 
-    @Transactional
-    public void deletePermanently(Long id) {
-        if (!customerRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Customer not found with ID: " + id);
-        }
-        customerRepository.deleteById(id);
+  private Sort createSort(String orderBy) {
+    if (orderBy == null || orderBy.isBlank()) {
+      return Sort.by(Sort.Direction.ASC, "name");
     }
+    return switch (orderBy) {
+      case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
+      case "price_desc" -> Sort.by(Sort.Direction.DESC, "debtBalance");
+      case "price_asc" -> Sort.by(Sort.Direction.ASC, "debtBalance");
+      case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
+      case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
+      default -> Sort.by(Sort.Direction.ASC, "name");
+    };
+  }
 
-    private void validateTaxId(String taxId, Long currentCustomerId) {
-        if (taxId == null || taxId.isBlank()) {
-            return;
-        }
-        Optional<Customer> existingCustomer = customerRepository.findByTaxId(taxId);
-        if (existingCustomer.isPresent()
-                && (currentCustomerId == null || !existingCustomer.get().getId().equals(currentCustomerId))) {
-            throw new ResourceAlreadyExistsException("A customer with this Tax ID already exists: " + taxId);
-        }
-    }
+  @Transactional(readOnly = true)
+  public CustomerResponse findById(Long id) {
+    return CustomerResponse.fromEntity(findEntityById(id));
+  }
 
-    private Sort createSort(String orderBy) {
-        if (orderBy == null || orderBy.isBlank()) {
-            return Sort.by(Sort.Direction.ASC, "name");
-        }
-        return switch (orderBy) {
-            case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
-            case "price_desc" -> Sort.by(Sort.Direction.DESC, "debtBalance");
-            case "price_asc" -> Sort.by(Sort.Direction.ASC, "debtBalance");
-            case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
-            case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
-            default -> Sort.by(Sort.Direction.ASC, "name");
-        };
-    }
-
-    @Transactional(readOnly = true)
-    public CustomerResponse findById(Long id) {
-        return CustomerResponse.fromEntity(findEntityById(id));
-    }
-
-    public Customer findEntityById(Long id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found  with ID: " + id));
-    }
+  public Customer findEntityById(Long id) {
+    Long userId = authenticatedUserService.getAuthenticatedUserId();
+    return customerRepository.findByIdAndUserId(id, userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Customer not found  with ID: " + id));
+  }
 }

@@ -26,12 +26,14 @@ public class CategoryService {
     private final AuthenticatedUserService authenticatedUserService;
 
     public Category findEntityById(Long id) {
-        return id != null ? categoryRepository.findById(id)
+      Long userId = authenticatedUserService.getAuthenticatedUserId();
+      return id != null ? categoryRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id)) : null;
     }
 
     public List<CategoryResponse> listAll() {
-        return categoryRepository.findAll().stream()
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return categoryRepository.findByUserId(userId).stream()
                 .map(CategoryResponse::fromEntity)
                 .collect(Collectors.toList());
     }

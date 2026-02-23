@@ -63,7 +63,8 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public List<AbcAnalysisResponse> getAbcAnalisys(ZonedDateTime startDate, ZonedDateTime endDate) {
-        List<Object[]> rawResults = saleItemRepository.performAbcAnalysis(startDate, endDate);
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        List<Object[]> rawResults = saleItemRepository.performAbcAnalysis(startDate, endDate, userId);
 
         return rawResults.stream()
                 .map(row -> new AbcAnalysisResponse(

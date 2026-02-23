@@ -12,7 +12,10 @@ import com.flick.business.core.entity.security.User;
 
 @Data
 @Entity
-@Table(name = "products")
+@Table(name = "products", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "name", "user_id" }),
+        @UniqueConstraint(columnNames = { "barcode", "user_id" })
+})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -26,7 +29,7 @@ public class Product {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 100, unique = true)
+    @Column(nullable = false, length = 100)
     private String name;
 
     @Column(length = 300)

@@ -7,6 +7,7 @@ import com.flick.business.core.entity.Customer;
 import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.Sale;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
@@ -14,6 +15,7 @@ import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
 import com.flick.business.repository.ProductRepository;
 import com.flick.business.repository.SaleRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,6 +51,8 @@ class SaleServiceTest {
 
     @Mock
     private GeneralSettingsService settingsService;
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
 
     @InjectMocks
     private SaleService saleService;
@@ -57,6 +61,7 @@ class SaleServiceTest {
     private Customer onCreditCustomer;
     private Customer cashCustomer;
     private GeneralSettings generalSettings;
+    private User user;
 
     @BeforeEach
     void setUp() {
@@ -85,6 +90,14 @@ class SaleServiceTest {
         generalSettings.setId(1L);
         generalSettings.setStockControlType(StockControlType.GLOBAL);
         when(settingsService.findEntity()).thenReturn(generalSettings);
+
+        user = User.builder()
+                .id(1L)
+                .username("test-user")
+                .password("123")
+                .build();
+        lenient().when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
+        lenient().when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
     }
 
     @Nested

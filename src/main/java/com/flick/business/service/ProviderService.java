@@ -21,12 +21,14 @@ public class ProviderService {
     private final AuthenticatedUserService authenticatedUserService;
 
     public Provider findById(Long id) {
-        return providerRepository.findById(id)
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return providerRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Provider not found with ID: " + id));
     }
 
     public List<ProviderResponse> listAll() {
-        return providerRepository.findAll().stream()
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return providerRepository.findByUserId(userId).stream()
                 .map(provider -> new ProviderResponse(provider.getId(), provider.getName()))
                 .collect(Collectors.toList());
     }

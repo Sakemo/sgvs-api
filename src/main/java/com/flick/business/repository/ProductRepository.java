@@ -2,6 +2,8 @@ package com.flick.business.repository;
 
 import com.flick.business.core.entity.Product;
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+    Optional<Product> findByIdAndUserId(Long id, Long userId);
+
     List<Product> findTop3ByActiveTrueAndUserIdOrderByNameAsc(Long userId);
 
     @Query(value = "SELECT p.* FROM products p " +
@@ -23,7 +27,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "ORDER BY COALESCE(SUM(si.quantity), 0) DESC", nativeQuery = true)
     Page<Product> findAllByMostSold(
             @Param("name") String name,
-            @Param("categoryId") Long categoryId,
+            @Param("categoryId")
+            Long categoryId,
             @Param("userId") Long userId,
             Pageable pageable);
 

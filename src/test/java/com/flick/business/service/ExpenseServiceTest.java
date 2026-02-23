@@ -4,11 +4,14 @@ import com.flick.business.api.dto.request.commercial.ExpenseRequest;
 import com.flick.business.api.dto.response.production.RestockItemRequest;
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.entity.Product;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.ExpenseType;
 import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.exception.BusinessException;
+import com.flick.business.api.mapper.ExpenseMapper;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.ProductRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,9 +40,13 @@ class ExpenseServiceTest {
     @Mock
     private ExpenseRepository expenseRepository;
     @Mock
+    private ExpenseMapper expenseMapper;
+    @Mock
     private ProductRepository productRepository;
     @Mock
     private ProductService productService;
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
 
     @InjectMocks
     private ExpenseService expenseService;
@@ -50,6 +57,7 @@ class ExpenseServiceTest {
     private ArgumentCaptor<List<Product>> productListArgumentCaptor;
 
     private Product product1;
+    private User user;
 
     @BeforeEach
     void setUp() {
@@ -59,6 +67,15 @@ class ExpenseServiceTest {
                 .stockQuantity(new BigDecimal("10"))
                 .costPrice(new BigDecimal("5.00"))
                 .build();
+
+        user = User.builder()
+                .id(1L)
+                .username("test-user")
+                .password("123")
+                .build();
+
+        lenient().when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
+        lenient().when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
     }
 
     @Nested

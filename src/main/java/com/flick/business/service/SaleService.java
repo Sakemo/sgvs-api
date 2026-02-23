@@ -53,6 +53,7 @@ public class SaleService {
         StockControlType stockControl = settings.getStockControlType();
 
         Sale newSale = new Sale();
+        newSale.setUser(authenticatedUserService.getAuthenticatedUser());
         newSale.setPaymentMethod(request.paymentMethod());
         newSale.setDescription(request.description());
 

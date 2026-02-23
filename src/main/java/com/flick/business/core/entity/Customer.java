@@ -13,7 +13,9 @@ import java.time.ZonedDateTime;
 import com.flick.business.core.entity.security.User;
 
 @Entity
-@Table(name = "customers")
+@Table(name = "customers", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "tax_id", "user_id" })
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,7 +32,7 @@ public class Customer {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 11, unique = true)
+    @Column(length = 11)
     private String taxId;
 
     @Column(length = 11)

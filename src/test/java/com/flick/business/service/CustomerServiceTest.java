@@ -3,10 +3,13 @@ package com.flick.business.service;
 import com.flick.business.api.dto.request.commercial.CustomerRequest;
 import com.flick.business.api.mapper.CustomerMapper;
 import com.flick.business.core.entity.Customer;
+import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.CustomerRepository;
+import com.flick.business.repository.SaleRepository;
+import com.flick.business.service.security.AuthenticatedUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,12 +39,17 @@ class CustomerServiceTest {
     private CustomerRepository customerRepository;
     @Mock
     private CustomerMapper customerMapper;
+    @Mock
+    private SaleRepository saleRepository;
+    @Mock
+    private AuthenticatedUserService authenticatedUserService;
 
     @InjectMocks
     private CustomerService customerService;
 
     private Customer customer;
     private CustomerRequest customerRequest;
+    private User user;
 
     @BeforeEach
     void setUp() {
@@ -55,6 +63,15 @@ class CustomerServiceTest {
 
         customerRequest = new CustomerRequest("Jane Doe", "98765432109", "555-1234", "123 Main St", true,
                 new BigDecimal("1000"), true);
+
+        user = User.builder()
+                .id(1L)
+                .username("test-user")
+                .password("123")
+                .build();
+
+        lenient().when(authenticatedUserService.getAuthenticatedUserId()).thenReturn(1L);
+        lenient().when(authenticatedUserService.getAuthenticatedUser()).thenReturn(user);
     }
 
     @Nested
@@ -64,7 +81,7 @@ class CustomerServiceTest {
         @Test
         @DisplayName("should save a new customer when Tax ID is not duplicated")
         void save_withValidData_isSuccessful() {
-            when(customerRepository.findByTaxId(customerRequest.taxId())).thenReturn(Optional.empty());
+            when(customerRepository.findByTaxIdAndUserId(customerRequest.taxId(), 1L)).thenReturn(Optional.empty());
             when(customerMapper.toEntity(customerRequest)).thenReturn(new Customer());
             when(customerRepository.save(any(Customer.class))).thenReturn(customer);
 
@@ -76,7 +93,7 @@ class CustomerServiceTest {
         @Test
         @DisplayName("should throw ResourceAlreadyExistsException when saving a customer with a duplicated Tax ID")
         void save_withDuplicatedTaxId_throwsResourceAlreadyExistsException() {
-            when(customerRepository.findByTaxId(customerRequest.taxId())).thenReturn(Optional.of(new Customer()));
+            when(customerRepository.findByTaxIdAndUserId(customerRequest.taxId(), 1L)).thenReturn(Optional.of(new Customer()));
 
             assertThatThrownBy(() -> customerService.save(customerRequest))
                     .isInstanceOf(ResourceAlreadyExistsException.class)
@@ -86,8 +103,8 @@ class CustomerServiceTest {
         @Test
         @DisplayName("should update an existing customer")
         void update_withValidData_isSuccessful() {
-            when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
-            when(customerRepository.findByTaxId(customerRequest.taxId())).thenReturn(Optional.empty());
+            when(customerRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(customer));
+            when(customerRepository.findByTaxIdAndUserId(customerRequest.taxId(), 1L)).thenReturn(Optional.empty());
             when(customerRepository.save(customer)).thenReturn(customer);
 
             customerService.update(1L, customerRequest);
@@ -119,7 +136,7 @@ class CustomerServiceTest {
         @Test
         @DisplayName("should toggle status to inactive when customer has no debt")
         void toggleActiveStatus_withNoDebt_isSuccessful() {
-            when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+            when(customerRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(customer));
 
             customerService.toggleActiveStatus(1L, false);
 
@@ -131,7 +148,7 @@ class CustomerServiceTest {
         @DisplayName("should throw BusinessException when trying to deactivate a customer with debt")
         void toggleActiveStatus_withDebt_throwsBusinessException() {
             customer.setDebtBalance(new BigDecimal("100.00"));
-            when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+            when(customerRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(customer));
 
             assertThatThrownBy(() -> customerService.toggleActiveStatus(1L, false))
                     .isInstanceOf(BusinessException.class)

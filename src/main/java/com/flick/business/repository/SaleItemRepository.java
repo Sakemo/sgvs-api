@@ -18,9 +18,11 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
         @Query("SELECT p.name, SUM(si.quantity * si.unitPrice) as totalRevenue " +
                         "FROM SaleItem si JOIN si.product p JOIN si.sale s " +
                         "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND s.user.id = :userId " +
                         "GROUP BY p.name ORDER BY totalRevenue DESC LIMIT 5")
         List<Object[]> findTop5SellingProductsByRevenue(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 
         @Query(value = "WITH ProductRevenue AS ( " +
                         "    SELECT " +
@@ -29,8 +31,8 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        COALESCE(SUM(si.quantity * si.unit_price), 0) AS total_revenue " +
                         "    FROM products p " +
                         "    LEFT JOIN sale_items si ON p.id = si.product_id " +
-                        "    LEFT JOIN sales s ON si.sale_id = s.id AND s.sale_date BETWEEN :startDate AND :endDate " +
-                        "    WHERE p.active = true " +
+                        "    LEFT JOIN sales s ON si.sale_id = s.id AND s.sale_date BETWEEN :startDate AND :endDate AND s.user_id = :userId " +
+                        "    WHERE p.active = true AND p.user_id = :userId " +
                         "    GROUP BY p.id, p.name " +
                         "), " +
                         "TotalRevenue AS ( " +
@@ -70,5 +72,6 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "FROM CumulativeContribution " +
                         "ORDER BY total_revenue DESC, product_name ASC", nativeQuery = true)
         List<Object[]> performAbcAnalysis(@Param("startDate") ZonedDateTime startDate,
-                        @Param("endDate") ZonedDateTime endDate);
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId);
 }

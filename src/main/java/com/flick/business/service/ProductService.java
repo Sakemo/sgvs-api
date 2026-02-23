@@ -75,8 +75,7 @@ public class ProductService {
 
     @Transactional
     public ProductResponse update(Long id, ProductRequest request) {
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+        Product existingProduct = findEntityById(id);
 
         Category category = categoryService.findEntityById(request.categoryId());
         Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
@@ -106,6 +105,7 @@ public class ProductService {
 
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
+
         Specification<Product> spec = ProductSpecification.withFilters(name, categoryId, userId);
 
         Page<Product> productPage = productRepository.findAll(spec, pageable);
@@ -145,7 +145,8 @@ public class ProductService {
      */
     @Transactional(readOnly = true)
     public Product findEntityById(Long id) {
-        return productRepository.findById(id)
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        return productRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
     }
 
@@ -157,8 +158,7 @@ public class ProductService {
 
     @Transactional
     public ProductResponse copyProduct(Long id) {
-        Product original = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product to copy not found with ID: " + id));
+        Product original = findEntityById(id);
 
         String baseName = original.getName().replaceAll("- Copy \\(\\d+\\)$", "");
         int nextCopyNumber = 1;
@@ -171,6 +171,7 @@ public class ProductService {
                 .unitOfSale(original.getUnitOfSale())
                 .category(original.getCategory())
                 .provider(original.getProvider())
+                .user(authenticatedUserService.getAuthenticatedUser())
                 .active(false)
                 .stockQuantity(BigDecimal.ZERO)
                 .barcode(null)
@@ -182,8 +183,7 @@ public class ProductService {
 
     @Transactional
     public void toggleActiveStatus(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+        Product product = findEntityById(id);
         product.setActive(!product.isActive());
         productRepository.save(product);
     }

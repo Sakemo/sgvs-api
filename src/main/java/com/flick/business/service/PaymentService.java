@@ -16,7 +16,7 @@ import com.flick.business.core.enums.PaymentStatus;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.repository.PaymentRepository;
 import com.flick.business.repository.SaleRepository;
-import com.flick.business.core.entity.Sale;
+import com.flick.business.service.security.AuthenticatedUserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,9 +26,12 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final SaleRepository saleRepository;
     private final CustomerService customerService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Transactional
     public void recordPayment(PaymentRequest request) {
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+
         // 1. Validate payment method
         if (request.paymentMethod() == PaymentMethod.ON_CREDIT) {
             throw new BusinessException("Payment method cannot be ON_CREDIT");
@@ -39,6 +42,11 @@ public class PaymentService {
 
         // 3. Search and validate sales
         List<Sale> salesToSettle = saleRepository.findAllById(request.saleIds());
+        boolean unauthorizedAccess = salesToSettle.stream()
+                .anyMatch(s -> !s.getUser().getId().equals(userId));
+        if (unauthorizedAccess || salesToSettle.size() != request.saleIds().size()) {
+            throw new BusinessException("Unauthorized: One or more sales do not belong to your account.");
+        }
         validateSales(salesToSettle, request.customerId(), request.amountPaid());
 
         // 4. Create and save Payment Entity
