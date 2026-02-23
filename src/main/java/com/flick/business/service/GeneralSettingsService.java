@@ -19,17 +19,6 @@ public class GeneralSettingsService {
     private final AuthenticatedUserService authenticatedUserService;
     private final GeneralSettingsRepository settingsRepository;
     private final GeneralSettingsMapper settingsMapper;
-    private static final Long SETTINGS_ID = 1L;
-
-    @PostConstruct
-    @Transactional
-    public void init() {
-        if (!settingsRepository.existsById(SETTINGS_ID)) {
-            GeneralSettings defaultSettings = new GeneralSettings();
-            defaultSettings.setId(SETTINGS_ID);
-            settingsRepository.save(defaultSettings);
-        }
-    }
 
     @Transactional(readOnly = true)
     public GeneralSettingsResponse getSettings() {
