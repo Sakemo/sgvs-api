@@ -2,6 +2,7 @@ package com.flick.business.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -39,10 +40,7 @@ public class CustomerService {
     validateTaxId(request.taxId(), null);
     Customer customer = customerMapper.toEntity(request);
     customer.setUser(currentUser);
-
-    System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
     Customer savedCustomer = customerRepository.save(customer);
-    System.out.println("SERVICE: Entity after save. Credit Limit: " + savedCustomer.getCreditLimit());
 
     return CustomerResponse.fromEntity(savedCustomer);
   }
@@ -70,12 +68,8 @@ public class CustomerService {
     Customer existingCustomer = findEntityById(id);
     validateTaxId(request.taxId(), id);
 
-    System.out.println("SERVICE: Updating customer. Credit Limit from DTO: " + request.creditLimit());
-
     customerMapper.updateEntityFromRequest(request, existingCustomer);
     Customer updatedCustomer = customerRepository.save(existingCustomer);
-
-    System.out.println("SERVICE: Entity after save. Credit Limit: " + updatedCustomer.getCreditLimit());
     return CustomerResponse.fromEntity(updatedCustomer);
   }
 
@@ -102,10 +96,8 @@ public class CustomerService {
 
   @Transactional
   public void deletePermanently(Long id) {
-    if (!customerRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Customer not found with ID: " + id);
-    }
-    customerRepository.deleteById(id);
+    Customer customer = findEntityById(id);
+    customerRepository.delete(customer);
   }
 
   private void validateTaxId(String taxId, Long currentCustomerId) {
@@ -124,12 +116,14 @@ public class CustomerService {
     if (orderBy == null || orderBy.isBlank()) {
       return Sort.by(Sort.Direction.ASC, "name");
     }
-    return switch (orderBy) {
+    String normalized = orderBy.trim().toLowerCase(Locale.ROOT);
+    return switch (normalized) {
+      case "name_asc", "nameasc" -> Sort.by(Sort.Direction.ASC, "name");
       case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
       case "price_desc" -> Sort.by(Sort.Direction.DESC, "debtBalance");
       case "price_asc" -> Sort.by(Sort.Direction.ASC, "debtBalance");
-      case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
-      case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
+      case "date_desc", "datedesc" -> Sort.by(Sort.Direction.DESC, "createdAt");
+      case "date_asc", "dateasc" -> Sort.by(Sort.Direction.ASC, "createdAt");
       default -> Sort.by(Sort.Direction.ASC, "name");
     };
   }
@@ -142,6 +136,6 @@ public class CustomerService {
   public Customer findEntityById(Long id) {
     Long userId = authenticatedUserService.getAuthenticatedUserId();
     return customerRepository.findByIdAndUserId(id, userId)
-        .orElseThrow(() -> new ResourceNotFoundException("Customer not found  with ID: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Customer not found with ID: " + id));
   }
 }

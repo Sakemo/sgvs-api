@@ -1,6 +1,7 @@
 package com.flick.business.api.controller;
 
 import com.flick.business.api.dto.request.commercial.CustomerRequest;
+import com.flick.business.api.dto.request.commercial.CustomerStatusRequest;
 import com.flick.business.api.dto.response.commercial.CustomerResponse;
 import com.flick.business.service.CustomerService;
 import jakarta.validation.Valid;
@@ -11,7 +12,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/customers") // << Path em inglês
@@ -59,13 +59,9 @@ public class CustomerController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Void> toggleCustomerStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> payload) {
-        Boolean active = payload.get("active");
-        if (active == null) {
-            // Lançar um bad request ou similar
-            return ResponseEntity.badRequest().build();
-        }
-        customerService.toggleActiveStatus(id, active);
+    public ResponseEntity<Void> toggleCustomerStatus(@PathVariable Long id,
+            @Valid @RequestBody CustomerStatusRequest request) {
+        customerService.toggleActiveStatus(id, request.active());
         return ResponseEntity.noContent().build();
     }
 

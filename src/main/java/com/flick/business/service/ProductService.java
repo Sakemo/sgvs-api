@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -42,8 +43,8 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getSuggestions() {
-        List<Long> topIds = saleItemRepository.findTop3MostSoldProductIds();
         Long userId = authenticatedUserService.getAuthenticatedUserId();
+        List<Long> topIds = saleItemRepository.findTop3MostSoldProductIds(userId);
 
         List<Product> products;
         if (!topIds.isEmpty()) {
@@ -190,22 +191,22 @@ public class ProductService {
 
     @Transactional
     public void deletePermanently(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with ID: " + id);
-        }
-        productRepository.deleteById(id);
+        Product product = findEntityById(id);
+        productRepository.delete(product);
     }
 
     private Sort createSort(String orderBy) {
         if (orderBy == null || orderBy.isBlank()) {
             return Sort.by(Sort.Direction.ASC, "name");
         }
-        return switch (orderBy) {
+        String normalized = orderBy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "name_asc", "nameasc" -> Sort.by(Sort.Direction.ASC, "name");
             case "name_desc" -> Sort.by(Sort.Direction.DESC, "name");
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "salePrice");
             case "price_desc" -> Sort.by(Sort.Direction.DESC, "salePrice");
-            case "date_asc" -> Sort.by(Sort.Direction.ASC, "createdAt");
-            case "date_desc" -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case "date_asc", "dateasc" -> Sort.by(Sort.Direction.ASC, "createdAt");
+            case "date_desc", "datedesc" -> Sort.by(Sort.Direction.DESC, "createdAt");
             default -> Sort.by(Sort.Direction.ASC, "name"); // name_asc
         };
     }

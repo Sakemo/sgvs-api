@@ -47,7 +47,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 3. Extract the JWT token (remove "Bearer ")
         final String jwt = authHeader.substring(7);
-        final String username = jwtService.extractUsername(jwt);
+        final String username;
+        try {
+            username = jwtService.extractUsername(jwt);
+        } catch (RuntimeException ex) {
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
+            return;
+        }
 
         // 4. Validate the token and check if the user is not already authenticated in
         // the current security context
@@ -56,16 +63,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
             // If the token is valid...
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                // ...create an authentication object...
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null, // No credentials (password) needed here
-                        userDetails.getAuthorities());
-                // ...add request details (such as IP and session)...
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                // ...and update the SecurityContextHolder.
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            try {
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    // ...create an authentication object...
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null, // No credentials (password) needed here
+                            userDetails.getAuthorities());
+                    // ...add request details (such as IP and session)...
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    // ...and update the SecurityContextHolder.
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            } catch (RuntimeException ex) {
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
+                return;
             }
         }
         // 5. Pass the request to the next filter in the chain

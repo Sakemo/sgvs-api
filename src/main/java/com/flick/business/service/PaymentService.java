@@ -56,6 +56,7 @@ public class PaymentService {
                 .paymentMethod(request.paymentMethod())
                 .settledSales(new HashSet<>(salesToSettle))
                 .build();
+        paymentRepository.save(newPayment);
 
         // 5. update sale status to PAID
         for (Sale sale : salesToSettle) {
@@ -78,7 +79,7 @@ public class PaymentService {
             }
 
             if (sale.getPaymentStatus() != PaymentStatus.PENDING) {
-                throw new BusinessException("Sale with ID " + sale.getId() + " is not pendind payment");
+                throw new BusinessException("Sale with ID " + sale.getId() + " is not pending payment");
             }
 
             totalValueOfSales = totalValueOfSales.add(sale.getTotalValue());

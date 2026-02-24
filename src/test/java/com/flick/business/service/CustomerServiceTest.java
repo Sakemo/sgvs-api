@@ -160,11 +160,11 @@ class CustomerServiceTest {
         @Test
         @DisplayName("should permanently delete a customer")
         void deletePermanently_isSuccessful() {
-            when(customerRepository.existsById(1L)).thenReturn(true);
+            when(customerRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(customer));
 
             customerService.deletePermanently(1L);
 
-            verify(customerRepository).deleteById(1L);
+            verify(customerRepository).delete(customer);
         }
     }
 }

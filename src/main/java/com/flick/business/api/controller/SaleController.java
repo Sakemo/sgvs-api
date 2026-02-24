@@ -2,12 +2,12 @@ package com.flick.business.api.controller;
 
 import com.flick.business.api.dto.request.commercial.SaleRequest;
 import com.flick.business.api.dto.response.commercial.SaleResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.api.dto.response.common.GroupSummary;
 import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.service.SaleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +35,7 @@ public class SaleController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<SaleResponse>> listSales(
+    public ResponseEntity<PageResponse<SaleResponse>> listSales(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
             @RequestParam(required = false) Long customerId,
@@ -45,7 +45,8 @@ public class SaleController {
             @RequestParam(required = false) String orderBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<SaleResponse> salesPage = saleService.listAll(startDate, endDate, customerId, paymentMethod, paymentStatus,
+        PageResponse<SaleResponse> salesPage = saleService.listAll(startDate, endDate, customerId, paymentMethod,
+                paymentStatus,
                 productId,
                 orderBy, page, size);
         return ResponseEntity.ok(salesPage);

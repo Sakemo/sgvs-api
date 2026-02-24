@@ -96,8 +96,7 @@ public class ExpenseService {
 
     @Transactional
     public Product restockProduct(Long productId, BigDecimal quantity, BigDecimal newCostPrice) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + productId));
+        Product product = productService.findEntityById(productId);
 
         product.setStockQuantity(product.getStockQuantity().add(quantity));
         product.setCostPrice(newCostPrice);
@@ -169,10 +168,8 @@ public class ExpenseService {
 
     @Transactional
     public void deleteById(Long id) {
-        if (!expenseRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Expense not found with ID: " + id);
-        }
-        expenseRepository.deleteById(id);
+        Expense expense = findEntityById(id);
+        expenseRepository.delete(expense);
     }
 
     private Expense findEntityById(Long id) {

@@ -41,9 +41,6 @@ public class DashboardService {
                 ZonedDateTime previousStartDate = startDate.minusDays(durationDays);
                 ZonedDateTime previousEndDate = endDate.minusDays(durationDays);
 
-                Long previousNewCustomers = customerRepository.countNewCustomersBetween(previousStartDate,
-                                previousEndDate, userId);
-
                 Long currentSaleCount = saleRepository.countSalesBetween(startDate, endDate, userId);
                 Long previousSaleCount = saleRepository.countSalesBetween(previousStartDate, previousEndDate, userId);
 
@@ -62,7 +59,6 @@ public class DashboardService {
                                 endDate, userId);
                 List<Object[]> revenueTrendRaw = saleRepository.findRevenueByDay(startDate, endDate, userId);
                 List<Object[]> expenseTrendRaw = expenseRepository.findExpenseByDay(startDate, endDate, userId);
-                new BigDecimal(previousNewCustomers);
 
                 BigDecimal currentAverageTicket = (currentSaleCount > 0)
                                 ? currentGrossRevenue.divide(new BigDecimal(currentSaleCount), 2, RoundingMode.HALF_UP)
@@ -72,7 +68,7 @@ public class DashboardService {
                                                 RoundingMode.HALF_UP)
                                 : BigDecimal.ZERO;
                 BigDecimal currentTotalReceivables = customerRepository.findTotalDebtBalance(userId);
-                BigDecimal previousTotalReceivables = BigDecimal.ZERO;
+                BigDecimal previousTotalReceivables = currentTotalReceivables;
 
                 MetricCardData totalReceivablesCard = buildMetricCard(currentTotalReceivables,
                                 previousTotalReceivables);
@@ -108,7 +104,7 @@ public class DashboardService {
                                         BigDecimal revenue = revenueByDate.getOrDefault(date, BigDecimal.ZERO);
                                         BigDecimal expense = expenseByDate.getOrDefault(date, BigDecimal.ZERO);
                                         BigDecimal profit = revenue.subtract(expense);
-                                        return new TimeSeriesDataPoint(date, revenue, profit, BigDecimal.ZERO);
+                                        return new TimeSeriesDataPoint(date, revenue, profit, currentTotalReceivables);
                                 })
                                 .collect(Collectors.toList());
 

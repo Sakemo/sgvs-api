@@ -12,8 +12,12 @@ import java.util.List;
 @Repository
 public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
 
-        @Query("SELECT si.product.id FROM SaleItem si GROUP BY si.product.id ORDER BY SUM(si.quantity) DESC LIMIT 3")
-        List<Long> findTop3MostSoldProductIds();
+        @Query("SELECT si.product.id FROM SaleItem si " +
+                        "JOIN si.sale s " +
+                        "WHERE s.user.id = :userId " +
+                        "GROUP BY si.product.id " +
+                        "ORDER BY SUM(si.quantity) DESC LIMIT 3")
+        List<Long> findTop3MostSoldProductIds(@Param("userId") Long userId);
 
         @Query("SELECT p.name, SUM(si.quantity * si.unitPrice) as totalRevenue " +
                         "FROM SaleItem si JOIN si.product p JOIN si.sale s " +

@@ -61,14 +61,12 @@ public class CategoryService {
         return;
       }
 
-      if (!categoryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Category not found with ID: " + id);
-        }
+      Category category = findEntityById(id);
 
         if (saleRepository.countByCategoryId(id, authenticatedUserService.getAuthenticatedUserId()) > 0) {
             throw new BusinessException("Cannot delete category as it is currently associated with existing sales.");
         }
 
-        categoryRepository.deleteById(id);
+        categoryRepository.delete(category);
     }
 }

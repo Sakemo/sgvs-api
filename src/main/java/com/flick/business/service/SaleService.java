@@ -2,6 +2,7 @@ package com.flick.business.service;
 
 import com.flick.business.api.dto.request.commercial.SaleRequest;
 import com.flick.business.api.dto.response.commercial.SaleResponse;
+import com.flick.business.api.dto.response.common.PageResponse;
 import com.flick.business.api.dto.response.common.GroupSummary;
 import com.flick.business.api.dto.response.common.TotalByPaymentMethod;
 import com.flick.business.core.entity.Customer;
@@ -31,8 +32,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -96,16 +100,13 @@ public class SaleService {
     }
 
     @Transactional(readOnly = true)
-    public Page<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
+    public PageResponse<SaleResponse> listAll(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
             String paymentMethodStr,
             String paymentStatusStr,
             Long productId, String orderBy, int page, int size) {
 
-        PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
-                : null;
-
-        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
-                : null;
+        PaymentMethod paymentMethod = parsePaymentMethod(paymentMethodStr);
+        PaymentStatus paymentStatus = parsePaymentStatus(paymentStatusStr);
 
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -114,17 +115,14 @@ public class SaleService {
                 paymentStatus, productId, authenticatedUserService.getAuthenticatedUserId());
 
         Page<Sale> salePage = saleRepository.findAll(spec, pageable);
-        return salePage.map(SaleResponse::fromEntity);
+        return new PageResponse<>(salePage.map(SaleResponse::fromEntity));
     }
 
     @Transactional(readOnly = true)
     public BigDecimal getGrossTotal(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
             String paymentMethodStr, String paymentStatusStr, Long productId) {
-        PaymentMethod paymentMethod = (paymentMethodStr != null) ? PaymentMethod.valueOf(paymentMethodStr.toUpperCase())
-                : null;
-
-        PaymentStatus paymentStatus = (paymentStatusStr != null) ? PaymentStatus.valueOf(paymentStatusStr.toUpperCase())
-                : null;
+        PaymentMethod paymentMethod = parsePaymentMethod(paymentMethodStr);
+        PaymentStatus paymentStatus = parsePaymentStatus(paymentStatusStr);
 
         ZonedDateTime effectiveStartDate = (startDate != null)
                 ? startDate
@@ -159,12 +157,64 @@ public class SaleService {
     @Transactional(readOnly = true)
     public List<GroupSummary> getSummaryByGroup(ZonedDateTime startDate, ZonedDateTime endDate, Long customerId,
             String paymentMethodStr, Long productId, String groupBy) {
-        return Collections.emptyList();
+        PaymentMethod paymentMethod = parsePaymentMethod(paymentMethodStr);
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+
+        Specification<Sale> spec = SaleSpecification.withFilters(
+                startDate, endDate, customerId, paymentMethod, null, productId, userId);
+        List<Sale> sales = saleRepository.findAll(spec);
+
+        String normalizedGroupBy = groupBy == null ? "" : groupBy.trim().toLowerCase(Locale.ROOT);
+        Map<String, GroupSummary> groupedSummaries = new LinkedHashMap<>();
+
+        for (Sale sale : sales) {
+            String groupKey;
+            String groupTitle;
+
+            switch (normalizedGroupBy) {
+                case "day", "date" -> {
+                    groupKey = sale.getSaleDate().toLocalDate().toString();
+                    groupTitle = groupKey;
+                }
+                case "customer" -> {
+                    if (sale.getCustomer() == null) {
+                        groupKey = "NO_CUSTOMER";
+                        groupTitle = "No customer";
+                    } else {
+                        groupKey = String.valueOf(sale.getCustomer().getId());
+                        groupTitle = sale.getCustomer().getName();
+                    }
+                }
+                case "paymentmethod", "payment_method", "payment" -> {
+                    groupKey = sale.getPaymentMethod().name();
+                    groupTitle = groupKey;
+                }
+                default -> throw new BusinessException(
+                        "Invalid groupBy parameter. Supported values: day, customer, paymentMethod");
+            }
+
+            GroupSummary existing = groupedSummaries.get(groupKey);
+            if (existing == null) {
+                groupedSummaries.put(groupKey, new GroupSummary(groupKey, groupTitle, sale.getTotalValue()));
+            } else {
+                groupedSummaries.put(
+                        groupKey,
+                        new GroupSummary(
+                                existing.getGroupKey(),
+                                existing.getGroupTitle(),
+                                existing.getTotalValue().add(sale.getTotalValue())));
+            }
+        }
+
+        return groupedSummaries.values().stream()
+                .sorted(Comparator.comparing(GroupSummary::getGroupKey))
+                .collect(Collectors.toList());
     }
 
     @Transactional
     public void deletePermanently(Long saleId) {
-        Sale saleToDelete = saleRepository.findById(saleId)
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        Sale saleToDelete = saleRepository.findByIdAndUserId(saleId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sale not found with ID: " + saleId));
 
         // restock
@@ -205,7 +255,7 @@ public class SaleService {
 
     private void validateAndDecrementStock(Product product, BigDecimal requestedQuantity) {
         if (product.getStockQuantity().compareTo(requestedQuantity) < 0) {
-            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Avaible: "
+            throw new BusinessException("Insufficient stock for product: " + product.getName() + ". Available: "
                     + product.getStockQuantity() + ", Requested: " + requestedQuantity);
         }
 
@@ -244,13 +294,37 @@ public class SaleService {
         if (orderBy == null || orderBy.isBlank()) {
             return Sort.by(Sort.Direction.DESC, "saleDate");
         }
-        return switch (orderBy) {
-            case "dateAsc" -> Sort.by(Sort.Direction.ASC, "saleDate");
+        String normalized = orderBy.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "dateasc", "date_asc" -> Sort.by(Sort.Direction.ASC, "saleDate");
+            case "datedesc", "date_desc" -> Sort.by(Sort.Direction.DESC, "saleDate");
             case "price_desc" -> Sort.by(Sort.Direction.DESC, "totalValue");
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "totalValue");
             case "customer_asc" -> Sort.by(Sort.Direction.ASC, "customer.name");
             case "customer_desc" -> Sort.by(Sort.Direction.DESC, "customer.name");
             default -> Sort.by(Sort.Direction.DESC, "saleDate");
         };
+    }
+
+    private PaymentMethod parsePaymentMethod(String paymentMethodStr) {
+        if (paymentMethodStr == null || paymentMethodStr.isBlank()) {
+            return null;
+        }
+        try {
+            return PaymentMethod.valueOf(paymentMethodStr.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("Invalid payment method: " + paymentMethodStr);
+        }
+    }
+
+    private PaymentStatus parsePaymentStatus(String paymentStatusStr) {
+        if (paymentStatusStr == null || paymentStatusStr.isBlank()) {
+            return null;
+        }
+        try {
+            return PaymentStatus.valueOf(paymentStatusStr.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("Invalid payment status: " + paymentStatusStr);
+        }
     }
 }

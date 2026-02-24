@@ -1,5 +1,19 @@
 Backend repo for: (https://github.com/Sakemo/sgvs-ui)[flick-business-frontend]
 
+## Local Secrets
+
+Do not commit credentials or JWT secrets in `application.properties`.
+
+1. Copy `.env.example` to `.env`.
+2. Set `DB_PASSWORD` and `JWT_SECRET_KEY` with real values.
+3. Export env vars before running the app, for example:
+
+```bash
+export DB_PASSWORD='your-db-password'
+export JWT_SECRET_KEY='a-long-random-secret'
+./mvnw spring-boot:run
+```
+
 ### **Master Project Document: Simplified Sales & Gestião de Vendas (SGVS)**
 
 **Version:** 1.0 (Post-Refactor)

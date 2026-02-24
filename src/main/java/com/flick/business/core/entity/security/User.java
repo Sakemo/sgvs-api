@@ -1,11 +1,14 @@
 package com.flick.business.core.entity.security;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.flick.business.core.enums.security.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,10 +16,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "password")
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
@@ -29,8 +34,9 @@ public class User implements UserDetails {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
-    
+
     @Column(unique = true)
     private String email;
 
