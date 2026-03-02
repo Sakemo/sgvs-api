@@ -8,11 +8,12 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import com.flick.business.core.entity.security.User;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 @Service
@@ -22,6 +23,11 @@ public class JwtService {
 
     @Value("${application.security.jwt.expiration}")
     private long jwtExpiration;
+    private final SessionRegistryService sessionRegistryService;
+
+    public JwtService(SessionRegistryService sessionRegistryService) {
+        this.sessionRegistryService = sessionRegistryService;
+    }
 
     /**
      * Extracts the username (subject) from the JWT token.
@@ -42,7 +48,7 @@ public class JwtService {
      * Generates a JWT token for a user.
      */
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        return generateToken(Map.of(), userDetails);
     }
 
     /**
@@ -63,7 +69,21 @@ public class JwtService {
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        if (!username.equals(userDetails.getUsername()) || isTokenExpired(token)) {
+            return false;
+        }
+
+        if (userDetails instanceof User user) {
+            String tokenSessionId = extractClaim(token, claims -> claims.get("sid", String.class));
+            String activeSessionId = sessionRegistryService.getActiveSession(user.getId());
+            if (activeSessionId == null) {
+                sessionRegistryService.registerSession(user.getId(), tokenSessionId);
+                return tokenSessionId != null;
+            }
+            return tokenSessionId != null && Objects.equals(tokenSessionId, activeSessionId);
+        }
+
+        return true;
     }
 
     /**

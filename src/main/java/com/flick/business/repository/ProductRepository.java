@@ -47,4 +47,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT p FROM Product p WHERE p.stockQuantity < p.minimumStock AND p.user.id = :userId")
     List<Product> findLowStockProducts(@Param("userId") Long userId);
+
+    @Query("SELECT p.name FROM Product p " +
+            "WHERE p.user.id = :userId " +
+            "AND (p.name = :baseName OR p.name LIKE CONCAT(:baseName, ' - Copy (%'))")
+    List<String> findNamesForCopySequence(@Param("baseName") String baseName, @Param("userId") Long userId);
 }

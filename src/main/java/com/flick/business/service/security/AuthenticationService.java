@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
@@ -38,6 +39,7 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final SessionRegistryService sessionRegistryService;
     private final AuthenticationManager authenticationManager;
 
     /**
@@ -74,7 +76,8 @@ public class AuthenticationService {
             throw new ResourceAlreadyExistsException("Username or email already in use.");
         }
 
-        var jwtToken = jwtService.generateToken(user);
+        String sessionId = sessionRegistryService.rotateSession(user.getId());
+        var jwtToken = jwtService.generateToken(Map.of("sid", sessionId), user);
 
         return AuthResponse.builder()
                 .token(jwtToken)
@@ -113,7 +116,8 @@ public class AuthenticationService {
         applyLegacyIdentityFallbacks(user, usernameOrEmail);
 
         resetFailedAttempts(usernameOrEmail);
-        var jwtToken = jwtService.generateToken(user);
+        String sessionId = sessionRegistryService.rotateSession(user.getId());
+        var jwtToken = jwtService.generateToken(Map.of("sid", sessionId), user);
 
         return AuthResponse.builder()
                 .token(jwtToken)
@@ -234,4 +238,5 @@ public class AuthenticationService {
             userRepository.save(user);
         }
     }
+
 }

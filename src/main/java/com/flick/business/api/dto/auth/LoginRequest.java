@@ -12,11 +12,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LoginRequest {
-    @NotBlank(message = "Username or email is required")
-    @Size(min = 3, max = 100, message = "Username or email must have between 3 and 100 characters")
+    @NotBlank(message = "Usuário ou e-mail é obrigatório.")
+    @Size(min = 3, max = 100, message = "Usuário ou e-mail deve ter entre 3 e 100 caracteres.")
     private String username;
 
-    @NotBlank(message = "Password is required")
-    @Size(max = 100, message = "Password must have at most 100 characters")
+    @NotBlank(message = "Senha é obrigatória.")
+    @Size(max = 100, message = "Senha deve ter no máximo 100 caracteres.")
     private String password;
 }

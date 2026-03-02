@@ -29,7 +29,6 @@ public class SaleSpecification {
 
             if (query != null && query.getResultType() != Long.class && query.getResultType() != long.class) {
                 root.fetch("customer", JoinType.LEFT);
-                root.fetch("items", JoinType.LEFT).fetch("product", JoinType.LEFT);
                 query.distinct(true);
             }
 

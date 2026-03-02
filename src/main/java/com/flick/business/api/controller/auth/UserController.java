@@ -6,6 +6,8 @@ import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.repository.security.UserRepository;
+import com.flick.business.service.security.AccountDeletionService;
+import com.flick.business.service.security.SessionRegistryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,6 +29,8 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessionRegistryService sessionRegistryService;
+    private final AccountDeletionService accountDeletionService;
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal User user) {
@@ -44,6 +48,7 @@ public class UserController {
             @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateUserRequest request) {
         User authenticatedUser = requireAuthenticatedUser(user);
+        boolean shouldRotateSession = false;
 
         if (request.username() != null) {
             String normalizedUsername = request.username().trim();
@@ -69,6 +74,11 @@ public class UserController {
 
         if (request.password() != null && !request.password().isBlank()) {
             authenticatedUser.setPassword(passwordEncoder.encode(request.password()));
+            shouldRotateSession = true;
+        }
+
+        if (shouldRotateSession) {
+            sessionRegistryService.rotateSession(authenticatedUser.getId());
         }
 
         try {
@@ -82,7 +92,8 @@ public class UserController {
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMyAccount(@AuthenticationPrincipal User user) {
         User authenticatedUser = requireAuthenticatedUser(user);
-        userRepository.delete(authenticatedUser);
+        accountDeletionService.deleteAccountAndRelatedData(authenticatedUser.getId());
+        sessionRegistryService.clearSession(authenticatedUser.getId());
         return ResponseEntity.noContent().build();
     }
 

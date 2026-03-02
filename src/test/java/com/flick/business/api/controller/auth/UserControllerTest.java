@@ -3,6 +3,8 @@ package com.flick.business.api.controller.auth;
 import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.security.Role;
 import com.flick.business.repository.security.UserRepository;
+import com.flick.business.service.security.AccountDeletionService;
+import com.flick.business.service.security.SessionRegistryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,10 +31,18 @@ class UserControllerTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private SessionRegistryService sessionRegistryService;
+    @Mock
+    private AccountDeletionService accountDeletionService;
 
     @BeforeEach
     void setUp() {
-        UserController userController = new UserController(userRepository, passwordEncoder);
+        UserController userController = new UserController(
+                userRepository,
+                passwordEncoder,
+                sessionRegistryService,
+                accountDeletionService);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(userController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())

@@ -1,6 +1,7 @@
 package com.flick.business.service;
 
 import com.flick.business.api.dto.request.production.ProductRequest;
+import com.flick.business.api.dto.response.production.ProductResponse;
 import com.flick.business.api.mapper.ProductMapper;
 import com.flick.business.core.entity.Category;
 import com.flick.business.core.entity.Product;
@@ -218,6 +219,61 @@ class ProductServiceTest {
     @Nested
     @DisplayName("Product Actions")
     class Actions {
+        @Test
+        @DisplayName("should create first copy as 'Copy (1)' when no copies exist")
+        void copyProduct_withoutExistingCopies_shouldUseCopyOne() {
+            when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(product));
+            when(productRepository.findNamesForCopySequence("Original Soda", 1L))
+                    .thenReturn(List.of("Original Soda"));
+            when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            ProductResponse response = productService.copyProduct(1L);
+
+            assertThat(response.name()).isEqualTo("Original Soda - Copy (1)");
+        }
+
+        @Test
+        @DisplayName("should increment copy number when copies already exist")
+        void copyProduct_withExistingCopies_shouldIncrementSuffix() {
+            when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(product));
+            when(productRepository.findNamesForCopySequence("Original Soda", 1L))
+                    .thenReturn(List.of(
+                            "Original Soda",
+                            "Original Soda - Copy (1)",
+                            "Original Soda - Copy (2)"));
+            when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            ProductResponse response = productService.copyProduct(1L);
+
+            assertThat(response.name()).isEqualTo("Original Soda - Copy (3)");
+        }
+
+        @Test
+        @DisplayName("should keep sequence when original selected is already a copy")
+        void copyProduct_whenOriginalIsCopy_shouldUseBaseNameSequence() {
+            Product copiedOriginal = Product.builder()
+                    .id(2L)
+                    .name("Original Soda - Copy (1)")
+                    .description("A classic soda")
+                    .salePrice(new BigDecimal("5.00"))
+                    .unitOfSale(UnitOfSale.UNIT)
+                    .category(category)
+                    .provider(provider)
+                    .build();
+
+            when(productRepository.findByIdAndUserId(2L, 1L)).thenReturn(Optional.of(copiedOriginal));
+            when(productRepository.findNamesForCopySequence("Original Soda", 1L))
+                    .thenReturn(List.of(
+                            "Original Soda",
+                            "Original Soda - Copy (1)",
+                            "Original Soda - Copy (2)"));
+            when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            ProductResponse response = productService.copyProduct(2L);
+
+            assertThat(response.name()).isEqualTo("Original Soda - Copy (3)");
+        }
+
         @Test
         @DisplayName("should toggle active status from true to false")
         void toggleActiveStatus_fromTrueToFalse_updatesProduct() {

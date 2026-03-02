@@ -2,10 +2,11 @@ package com.flick.business.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProductService {
+    private static final Pattern COPY_SUFFIX_PATTERN = Pattern.compile(" - Copy \\((\\d+)\\)$");
+
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final CategoryService categoryService;
@@ -161,8 +164,9 @@ public class ProductService {
     public ProductResponse copyProduct(Long id) {
         Product original = findEntityById(id);
 
-        String baseName = original.getName().replaceAll("- Copy \\(\\d+\\)$", "");
-        int nextCopyNumber = 1;
+        String baseName = COPY_SUFFIX_PATTERN.matcher(original.getName()).replaceFirst("");
+        Long userId = authenticatedUserService.getAuthenticatedUserId();
+        int nextCopyNumber = findNextCopyNumber(baseName, userId);
         String newName = String.format("%s - Copy (%d)", baseName, nextCopyNumber);
 
         Product copy = Product.builder()
@@ -180,6 +184,23 @@ public class ProductService {
 
         Product savedCopy = productRepository.save(copy);
         return ProductResponse.fromEntity(savedCopy);
+    }
+
+    private int findNextCopyNumber(String baseName, Long userId) {
+        List<String> existingNames = productRepository.findNamesForCopySequence(baseName, userId);
+        int maxCopyNumber = 0;
+
+        for (String name : existingNames) {
+            Matcher matcher = COPY_SUFFIX_PATTERN.matcher(name);
+            if (matcher.find()) {
+                int copyNumber = Integer.parseInt(matcher.group(1));
+                if (copyNumber > maxCopyNumber) {
+                    maxCopyNumber = copyNumber;
+                }
+            }
+        }
+
+        return maxCopyNumber + 1;
     }
 
     @Transactional
