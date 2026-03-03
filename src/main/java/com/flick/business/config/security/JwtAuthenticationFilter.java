@@ -52,7 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtService.extractUsername(jwt);
         } catch (RuntimeException ex) {
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token JWT inválido ou expirado.");
             return;
         }
 
@@ -77,7 +77,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             } catch (RuntimeException ex) {
                 SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired JWT token");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token JWT inválido ou expirado.");
                 return;
             }
         }

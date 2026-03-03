@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
             return "Erro ao processar a requisição.";
         }
 
-        return switch (message) {
+        String exactTranslation = switch (message) {
             case "Invalid credentials." -> "Credenciais inválidas.";
             case "Too many login attempts. Try again later." ->
                     "Muitas tentativas de login. Tente novamente mais tarde.";
@@ -134,8 +134,109 @@ public class GlobalExceptionHandler {
             case "Username is required" -> "Usuário é obrigatório.";
             case "Email is required" -> "E-mail é obrigatório.";
             case "Password is required" -> "Senha é obrigatória.";
-            default -> translatePatternMessages(message);
+            case "Invalid or expired JWT token" -> "Token JWT inválido ou expirado.";
+            case "Customer is required for ON_CREDIT sales." -> "Cliente é obrigatório para vendas no fiado.";
+            case "This customer is not enabled for credit purchases." -> "Este cliente não está habilitado para compras no fiado.";
+            case "This customer is not enabled to puchase credits." -> "Este cliente não está habilitado para compras no fiado.";
+            case "Cannot deactivate a customer with an outstanding debt balance." ->
+                    "Não é possível desativar um cliente com saldo devedor pendente.";
+            case "A customer with this Tax ID already exists in your account." ->
+                    "Já existe um cliente com este CPF/CNPJ na sua conta.";
+            case "Payment method cannot be ON_CREDIT" ->
+                    "Forma de pagamento não pode ser fiado.";
+            case "Unauthorized: One or more sales do not belong to your account." ->
+                    "Não autorizado: uma ou mais vendas não pertencem à sua conta.";
+            case "No sales found for the provided IDs." ->
+                    "Nenhuma venda encontrada para os IDs informados.";
+            case "Restocking expenses must contain at least one item." ->
+                    "Despesas de reposição devem conter ao menos um item.";
+            case "A value greater than zero is required for this type of expense." ->
+                    "Um valor maior que zero é obrigatório para este tipo de despesa.";
+            case "Restock items should not be provided for non-restocking expenses." ->
+                    "Itens de reposição não devem ser informados para despesas que não são de reposição.";
+            case "Unable to generate automatic data for restocking expense." ->
+                    "Não foi possível gerar os dados automáticos da despesa de reposição.";
+            case "Unable to generate automatic name for restocking expense." ->
+                    "Não foi possível gerar o nome automático da despesa de reposição.";
+            case "Unable to generate automatic description for restocking expense." ->
+                    "Não foi possível gerar a descrição automática da despesa de reposição.";
+            case "Cannot delete category as it is currently associated with existing sales." ->
+                    "Não é possível excluir a categoria, pois ela está associada a vendas existentes.";
+            default -> null;
         };
+
+        if (exactTranslation != null) {
+            return exactTranslation;
+        }
+
+        String dynamicTranslation = translateDynamicMessages(message);
+        if (dynamicTranslation != null) {
+            return dynamicTranslation;
+        }
+
+        return translatePatternMessages(message);
+    }
+
+    private String translateDynamicMessages(String message) {
+        String normalized = message.toLowerCase(Locale.ROOT);
+
+        if (normalized.startsWith("product not found with id: ")) {
+            return "Produto não encontrado com ID: " + message.substring("Product not found with ID: ".length());
+        }
+        if (normalized.startsWith("customer not found with id: ")) {
+            return "Cliente não encontrado com ID: " + message.substring("Customer not found with ID: ".length());
+        }
+        if (normalized.startsWith("provider not found with id: ")) {
+            return "Fornecedor não encontrado com ID: " + message.substring("Provider not found with ID: ".length());
+        }
+        if (normalized.startsWith("category not found with id: ")) {
+            return "Categoria não encontrada com ID: " + message.substring("Category not found with ID: ".length());
+        }
+        if (normalized.startsWith("sale not found with id: ")) {
+            return "Venda não encontrada com ID: " + message.substring("Sale not found with ID: ".length());
+        }
+        if (normalized.startsWith("expense not found with id: ")) {
+            return "Despesa não encontrada com ID: " + message.substring("Expense not found with ID: ".length());
+        }
+        if (normalized.startsWith("invalid payment method: ")) {
+            return "Forma de pagamento inválida: " + message.substring("Invalid payment method: ".length());
+        }
+        if (normalized.startsWith("invalid payment status: ")) {
+            return "Status de pagamento inválido: " + message.substring("Invalid payment status: ".length());
+        }
+        if (normalized.startsWith("invalid expense type: ")) {
+            return "Tipo de despesa inválido: " + message.substring("Invalid expense type: ".length());
+        }
+        if (normalized.startsWith("invalid groupby parameter.")) {
+            return "Parâmetro groupBy inválido. Valores suportados: day, customer, paymentMethod.";
+        }
+        if (normalized.startsWith("credit limit exceeded for customer: ")) {
+            return "Limite de crédito excedido para o cliente: " + message.substring("Credit limit exceeded for customer: ".length());
+        }
+        if (normalized.startsWith("sale with id ") && normalized.endsWith(" does not belong to the customer")) {
+            return "Venda com ID " + message.substring("Sale with ID ".length(), message.length() - " does not belong to the customer".length())
+                    + " não pertence ao cliente.";
+        }
+        if (normalized.startsWith("sale with id ") && normalized.endsWith(" is not pending payment")) {
+            return "Venda com ID " + message.substring("Sale with ID ".length(), message.length() - " is not pending payment".length())
+                    + " não está pendente de pagamento.";
+        }
+        if (normalized.startsWith("the amount paid ") && normalized.contains("does not match the total value of the selected sales")) {
+            return "O valor pago não confere com o valor total das vendas selecionadas.";
+        }
+        if (normalized.startsWith("insufficient stock for product: ")) {
+            int availableIndex = message.indexOf(". Available: ");
+            int requestedIndex = message.indexOf(", Requested: ");
+            if (availableIndex > 0 && requestedIndex > availableIndex) {
+                String productName = message.substring("Insufficient stock for product: ".length(), availableIndex);
+                String available = message.substring(availableIndex + ". Available: ".length(), requestedIndex);
+                String requested = message.substring(requestedIndex + ", Requested: ".length());
+                return "Estoque insuficiente para o produto: " + productName + ". Disponível: " + available
+                        + ", Solicitado: " + requested + ".";
+            }
+            return "Estoque insuficiente para o produto informado.";
+        }
+        return null;
     }
 
     private String translatePatternMessages(String message) {
@@ -143,11 +244,20 @@ public class GlobalExceptionHandler {
         if (normalized.contains("must not be blank")) {
             return "Campo obrigatório.";
         }
+        if (normalized.contains("must not be null")) {
+            return "Campo obrigatório.";
+        }
+        if (normalized.contains("active is required")) {
+            return "Status ativo é obrigatório.";
+        }
         if (normalized.contains("must be a well-formed email address")) {
             return "E-mail deve ser válido.";
         }
         if (normalized.contains("size must be between")) {
             return "Tamanho inválido para o campo.";
+        }
+        if (normalized.contains("must be greater than or equal to")) {
+            return "Valor inválido para o campo.";
         }
         return message;
     }

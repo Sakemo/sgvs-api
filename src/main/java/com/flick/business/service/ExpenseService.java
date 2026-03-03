@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +68,6 @@ public class ExpenseService {
             throw new BusinessException("Restocking expenses must contain at least one item.");
         }
 
-        BigDecimal totalValue = BigDecimal.ZERO;
         List<Product> productsToUpdate = new ArrayList<>();
 
         for (RestockItemRequest itemRequest : request.restockItems()) {
@@ -79,10 +79,6 @@ public class ExpenseService {
             product.setStockQuantity(product.getStockQuantity().add(quantity));
             productsToUpdate.add(product);
 
-            // calculates expense value
-            BigDecimal itemTotal = quantity.multiply(unitCostPrice);
-            totalValue = totalValue.add(itemTotal);
-
             // create and associates RestockItem
             RestockItem restockItem = new RestockItem();
             restockItem.setProduct(product);
@@ -90,8 +86,9 @@ public class ExpenseService {
             restockItem.setUnitCostPrice(unitCostPrice);
             expense.AddRestockItem(restockItem);
         }
+
         productRepository.saveAll(productsToUpdate);
-        expense.setValue(totalValue);
+        applyAutomaticRestockingMetadata(expense);
     }
 
     @Transactional
@@ -126,6 +123,9 @@ public class ExpenseService {
     public ExpenseResponse update(Long id, ExpenseRequest request) {
         Expense existingExpense = findEntityById(id);
         expenseMapper.updateEntityFromRequest(request, existingExpense);
+        if (existingExpense.getExpenseType() == ExpenseType.RESTOCKING) {
+            applyAutomaticRestockingMetadata(existingExpense);
+        }
         Expense updatedExpense = expenseRepository.save(existingExpense);
         return ExpenseResponse.fromEntity(updatedExpense);
     }
@@ -187,5 +187,57 @@ public class ExpenseService {
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Invalid expense type: " + typeStr);
         }
+    }
+
+    private void applyAutomaticRestockingMetadata(Expense expense) {
+        if (expense.getRestockItems() == null || expense.getRestockItems().isEmpty()) {
+            throw new BusinessException("Unable to generate automatic data for restocking expense.");
+        }
+        RestockItem firstItem = expense.getRestockItems().get(0);
+        String firstProductName = firstItem.getProduct() != null ? firstItem.getProduct().getName() : null;
+        BigDecimal firstQuantity = firstItem.getQuantity();
+
+        List<String> itemDescriptions = expense.getRestockItems().stream()
+                .map(item -> {
+                    String productName = item.getProduct() != null ? item.getProduct().getName() : "";
+                    return formatQuantity(item.getQuantity()) + "x " + productName.trim();
+                })
+                .toList();
+
+        BigDecimal totalValue = expense.getRestockItems().stream()
+                .map(item -> item.getQuantity().multiply(item.getUnitCostPrice()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        expense.setName(buildAutomaticRestockingName(firstQuantity, firstProductName, expense.getRestockItems().size()));
+        expense.setDescription(buildAutomaticRestockingDescription(itemDescriptions));
+        expense.setValue(totalValue);
+    }
+
+    private String buildAutomaticRestockingName(BigDecimal quantity, String productName, int totalItems) {
+        if (quantity == null || productName == null || productName.isBlank()) {
+            throw new BusinessException("Unable to generate automatic name for restocking expense.");
+        }
+        String baseName = formatQuantity(quantity) + "x " + productName.trim();
+        if (totalItems <= 1) {
+            return baseName;
+        }
+        return baseName + " +" + (totalItems - 1);
+    }
+
+    private String buildAutomaticRestockingDescription(List<String> itemDescriptions) {
+        if (itemDescriptions == null || itemDescriptions.isEmpty()) {
+            throw new BusinessException("Unable to generate automatic description for restocking expense.");
+        }
+        StringJoiner joiner = new StringJoiner("\n", "Itens comprados:\n", "");
+        itemDescriptions.forEach(item -> joiner.add("- " + item));
+        String description = joiner.toString();
+        if (description.length() <= 500) {
+            return description;
+        }
+        return description.substring(0, 497) + "...";
+    }
+
+    private String formatQuantity(BigDecimal quantity) {
+        return quantity.stripTrailingZeros().toPlainString();
     }
 }

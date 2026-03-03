@@ -14,7 +14,7 @@ public record ExpenseResponse(
         ZonedDateTime expenseDate,
         ExpenseType expenseType,
         PaymentMethod paymentMethod,
-        String observation,
+        String description,
         ZonedDateTime createdAt,
         ZonedDateTime updatedAt) {
     public static ExpenseResponse fromEntity(Expense expense) {
