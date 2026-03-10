@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Customer Service Tests")
@@ -82,11 +83,14 @@ class CustomerServiceTest {
         @DisplayName("should save a new customer when Tax ID is not duplicated")
         void save_withValidData_isSuccessful() {
             when(customerRepository.findByTaxIdAndUserId(customerRequest.taxId(), 1L)).thenReturn(Optional.empty());
-            when(customerMapper.toEntity(customerRequest)).thenReturn(new Customer());
+            when(customerMapper.toEntity(any(CustomerRequest.class))).thenReturn(new Customer());
             when(customerRepository.save(any(Customer.class))).thenReturn(customer);
 
             customerService.save(customerRequest);
 
+            ArgumentCaptor<CustomerRequest> requestCaptor = ArgumentCaptor.forClass(CustomerRequest.class);
+            verify(customerMapper).toEntity(requestCaptor.capture());
+            assertThat(requestCaptor.getValue().phone()).isEqualTo("5551234");
             verify(customerRepository).save(any(Customer.class));
         }
 
@@ -109,7 +113,9 @@ class CustomerServiceTest {
 
             customerService.update(1L, customerRequest);
 
-            verify(customerMapper).updateEntityFromRequest(eq(customerRequest), eq(customer));
+            ArgumentCaptor<CustomerRequest> requestCaptor = ArgumentCaptor.forClass(CustomerRequest.class);
+            verify(customerMapper).updateEntityFromRequest(requestCaptor.capture(), eq(customer));
+            assertThat(requestCaptor.getValue().phone()).isEqualTo("5551234");
             verify(customerRepository).save(customer);
         }
     }

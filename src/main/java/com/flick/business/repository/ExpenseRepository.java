@@ -1,11 +1,13 @@
 package com.flick.business.repository;
 
 import com.flick.business.core.entity.Expense;
+import com.flick.business.core.enums.ExpenseType;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -33,6 +35,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
       @Param("endDate") ZonedDateTime endDate,
       @Param("userId") Long userId);
 
+  @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
+      "AND e.user.id = :userId " +
+      "AND e.expenseType IN :types")
+  BigDecimal sumTotalValueBetweenDatesByTypes(
+      @Param("startDate") ZonedDateTime startDate,
+      @Param("endDate") ZonedDateTime endDate,
+      @Param("userId") Long userId,
+      @Param("types") Set<ExpenseType> types);
+
   @Query("SELECT CAST(e.expenseDate AS date), SUM(e.value) FROM Expense e " +
       "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
       "AND e.user.id = :userId " +
@@ -40,4 +52,15 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
   List<Object[]> findExpenseByDay(@Param("startDate") ZonedDateTime startDate,
       @Param("endDate") ZonedDateTime endDate,
       @Param("userId") Long userId);
+
+  @Query("SELECT CAST(e.expenseDate AS date), COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
+      "AND e.user.id = :userId " +
+      "AND e.expenseType = :expenseType " +
+      "GROUP BY CAST(e.expenseDate AS date) ORDER BY CAST(e.expenseDate AS date)")
+  List<Object[]> sumTotalGroupByDayByTypeBetween(
+      @Param("startDate") ZonedDateTime startDate,
+      @Param("endDate") ZonedDateTime endDate,
+      @Param("userId") Long userId,
+      @Param("expenseType") ExpenseType expenseType);
 }

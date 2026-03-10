@@ -36,9 +36,10 @@ public class CustomerService {
 
   @Transactional
   public CustomerResponse save(CustomerRequest request) {
+    CustomerRequest normalizedRequest = normalizeRequest(request);
     User currentUser = authenticatedUserService.getAuthenticatedUser();
-    validateTaxId(request.taxId(), null);
-    Customer customer = customerMapper.toEntity(request);
+    validateTaxId(normalizedRequest.taxId(), null);
+    Customer customer = customerMapper.toEntity(normalizedRequest);
     customer.setUser(currentUser);
     Customer savedCustomer = customerRepository.save(customer);
 
@@ -65,10 +66,11 @@ public class CustomerService {
 
   @Transactional
   public CustomerResponse update(Long id, CustomerRequest request) {
+    CustomerRequest normalizedRequest = normalizeRequest(request);
     Customer existingCustomer = findEntityById(id);
-    validateTaxId(request.taxId(), id);
+    validateTaxId(normalizedRequest.taxId(), id);
 
-    customerMapper.updateEntityFromRequest(request, existingCustomer);
+    customerMapper.updateEntityFromRequest(normalizedRequest, existingCustomer);
     Customer updatedCustomer = customerRepository.save(existingCustomer);
     return CustomerResponse.fromEntity(updatedCustomer);
   }
@@ -110,6 +112,25 @@ public class CustomerService {
         && (currentCustomerId == null || !existingCustomer.get().getId().equals(currentCustomerId))) {
       throw new ResourceAlreadyExistsException("A customer with this Tax ID already exists in your account.");
     }
+  }
+
+  private CustomerRequest normalizeRequest(CustomerRequest request) {
+    return new CustomerRequest(
+        request.name(),
+        normalizeDigits(request.taxId()),
+        normalizeDigits(request.phone()),
+        request.address(),
+        request.creditEnabled(),
+        request.creditLimit(),
+        request.active());
+  }
+
+  private String normalizeDigits(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    String normalized = value.replaceAll("\\D", "");
+    return normalized.isBlank() ? null : normalized;
   }
 
   private Sort createSort(String orderBy) {

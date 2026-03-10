@@ -283,7 +283,9 @@ public class SaleService {
             }
             BigDecimal newDebt = customer.getDebtBalance().add(sale.getTotalValue());
             if (customer.getCreditLimit() != null && newDebt.compareTo(customer.getCreditLimit()) > 0) {
-                throw new BusinessException("Credit limit exceeded for customer: " + customer.getName());
+                throw new BusinessException("Credit limit exceeded for customer: " + customer.getName()
+                        + ". Current spent: " + customer.getDebtBalance()
+                        + ". Credit limit: " + customer.getCreditLimit());
             }
             customer.setDebtBalance(newDebt);
             customer.setLastCreditPurchaseAt(sale.getSaleDate());

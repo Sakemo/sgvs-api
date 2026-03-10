@@ -3,10 +3,14 @@ package com.flick.business.service.security;
 import com.flick.business.api.dto.auth.AuthResponse;
 import com.flick.business.api.dto.auth.LoginRequest;
 import com.flick.business.api.dto.auth.RegisterRequest;
+import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.security.Role;
+import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
+import com.flick.business.exception.LoginAttemptsExceededException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
+import com.flick.business.repository.GeneralSettingsRepository;
 import com.flick.business.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +41,7 @@ public class AuthenticationService {
     private static final ConcurrentMap<String, LoginAttemptState> LOGIN_ATTEMPTS = new ConcurrentHashMap<>();
 
     private final UserRepository userRepository;
+    private final GeneralSettingsRepository generalSettingsRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final SessionRegistryService sessionRegistryService;
@@ -48,6 +53,7 @@ public class AuthenticationService {
      * @param request The registration request containing username and password.
      * @return An AuthResponse containing the JWT for the newly created user.
      */
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         String username = request.getUsername().trim();
         String email = request.getEmail().trim().toLowerCase();
@@ -70,21 +76,24 @@ public class AuthenticationService {
                 .role(Role.USER)
                 .build();
 
+        User savedUser;
         try {
-            userRepository.save(user);
+            savedUser = userRepository.save(user);
         } catch (DataIntegrityViolationException ex) {
             throw new ResourceAlreadyExistsException("Username or email already in use.");
         }
 
-        String sessionId = sessionRegistryService.rotateSession(user.getId());
-        var jwtToken = jwtService.generateToken(Map.of("sid", sessionId), user);
+        ensureDefaultSettings(savedUser);
+
+        String sessionId = sessionRegistryService.rotateSession(savedUser.getId());
+        var jwtToken = jwtService.generateToken(Map.of("sid", sessionId), savedUser);
 
         return AuthResponse.builder()
                 .token(jwtToken)
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(resolveEffectiveEmail(user))
-                .role(user.getRole())
+                .id(savedUser.getId())
+                .username(savedUser.getUsername())
+                .email(resolveEffectiveEmail(savedUser))
+                .role(savedUser.getRole())
                 .build();
     }
 
@@ -158,8 +167,7 @@ public class AuthenticationService {
         }
         Instant now = Instant.now();
         if (state.lockedUntil != null && now.isBefore(state.lockedUntil)) {
-            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
-                    "Too many login attempts. Try again later.");
+            throw new LoginAttemptsExceededException(state.lockedUntil);
         }
     }
 
@@ -237,6 +245,16 @@ public class AuthenticationService {
         if (changed) {
             userRepository.save(user);
         }
+    }
+
+    private void ensureDefaultSettings(User user) {
+        generalSettingsRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    GeneralSettings defaultSettings = new GeneralSettings();
+                    defaultSettings.setUser(user);
+                    defaultSettings.setStockControlType(StockControlType.PER_ITEM);
+                    return generalSettingsRepository.save(defaultSettings);
+                });
     }
 
 }

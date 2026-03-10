@@ -3,7 +3,9 @@ package com.flick.business.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.ZonedDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.flick.business.api.dto.response.aministration.reports.AbcAnalysisResponse;
 import com.flick.business.api.dto.response.reports.FinancialSummaryResponse;
+import com.flick.business.core.enums.ExpenseType;
 import com.flick.business.repository.ExpenseRepository;
 import com.flick.business.repository.SaleItemRepository;
 import com.flick.business.repository.SaleRepository;
@@ -21,6 +24,14 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ReportService {
+    private static final Set<ExpenseType> OPERATING_EXPENSE_TYPES = EnumSet.of(
+            ExpenseType.BUSINESS,
+            ExpenseType.OTHERS);
+
+    private static final Set<ExpenseType> NON_OPERATING_EXPENSE_TYPES = EnumSet.of(
+            ExpenseType.PERSONAL,
+            ExpenseType.INVESTMENT);
+
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
     private final ExpenseRepository expenseRepository;
@@ -32,12 +43,16 @@ public class ReportService {
         Long userId = authenticatedUserService.getAuthenticatedUserId();
         BigDecimal totalRevenue = saleRepository.sumTotalValueBetweenDates(startDate, endDate, userId);
         BigDecimal totalCogs = saleRepository.sumTotalCostOfGoodsSoldBetween(startDate, endDate, userId);
-        BigDecimal totalExpenses = expenseRepository.sumTotalValueBetweenDates(startDate, endDate, userId);
+        BigDecimal totalOperatingExpenses = expenseRepository.sumTotalValueBetweenDatesByTypes(
+                startDate, endDate, userId, OPERATING_EXPENSE_TYPES);
+        BigDecimal totalNonOperatingExpenses = expenseRepository.sumTotalValueBetweenDatesByTypes(
+                startDate, endDate, userId, NON_OPERATING_EXPENSE_TYPES);
+        BigDecimal totalExpenses = totalOperatingExpenses.add(totalNonOperatingExpenses);
 
         // calculate profits
         BigDecimal grossProfit = totalRevenue.subtract(totalCogs);
-        BigDecimal netProfit = grossProfit.subtract(totalExpenses);
-        BigDecimal operatingProfit = grossProfit.subtract(totalExpenses);
+        BigDecimal operatingProfit = grossProfit.subtract(totalOperatingExpenses);
+        BigDecimal netProfit = operatingProfit.subtract(totalNonOperatingExpenses);
 
         // calculate margins
         BigDecimal zero = BigDecimal.ZERO;

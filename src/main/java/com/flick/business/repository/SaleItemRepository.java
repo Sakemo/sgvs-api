@@ -23,8 +23,8 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "FROM SaleItem si JOIN si.product p JOIN si.sale s " +
                         "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
                         "AND s.user.id = :userId " +
-                        "GROUP BY p.name ORDER BY totalRevenue DESC LIMIT 5")
-        List<Object[]> findTop5SellingProductsByRevenue(@Param("startDate") ZonedDateTime startDate,
+                        "GROUP BY p.name ORDER BY totalRevenue DESC LIMIT 10")
+        List<Object[]> findTop10SellingProductsByRevenue(@Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate,
                         @Param("userId") Long userId);
 
@@ -33,10 +33,13 @@ public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
                         "        p.id AS product_id, " +
                         "        p.name AS product_name, " +
                         "        COALESCE(SUM(si.quantity * si.unit_price), 0) AS total_revenue " +
-                        "    FROM products p " +
-                        "    LEFT JOIN sale_items si ON p.id = si.product_id " +
-                        "    LEFT JOIN sales s ON si.sale_id = s.id AND s.sale_date BETWEEN :startDate AND :endDate AND s.user_id = :userId " +
-                        "    WHERE p.active = true AND p.user_id = :userId " +
+                        "    FROM sale_items si " +
+                        "    JOIN sales s ON si.sale_id = s.id " +
+                        "    JOIN products p ON p.id = si.product_id " +
+                        "    WHERE s.sale_date BETWEEN :startDate AND :endDate " +
+                        "      AND s.user_id = :userId " +
+                        "      AND p.user_id = :userId " +
+                        "      AND p.active = true " +
                         "    GROUP BY p.id, p.name " +
                         "), " +
                         "TotalRevenue AS ( " +

@@ -1,12 +1,14 @@
 package com.flick.business.api.controller.auth;
 
 import com.flick.business.api.dto.auth.UpdateUserRequest;
+import com.flick.business.api.dto.auth.AuthResponse;
 import com.flick.business.api.dto.response.auth.UserProfileResponse;
 import com.flick.business.core.entity.security.User;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.repository.security.UserRepository;
 import com.flick.business.service.security.AccountDeletionService;
+import com.flick.business.service.security.JwtService;
 import com.flick.business.service.security.SessionRegistryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @RestController
@@ -31,6 +34,7 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
     private final SessionRegistryService sessionRegistryService;
     private final AccountDeletionService accountDeletionService;
+    private final JwtService jwtService;
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal User user) {
@@ -44,11 +48,11 @@ public class UserController {
 
     @PutMapping("/me")
     @jakarta.transaction.Transactional
-    public ResponseEntity<Void> updateProfile(
+    public ResponseEntity<AuthResponse> updateProfile(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody UpdateUserRequest request) {
         User authenticatedUser = requireAuthenticatedUser(user);
-        boolean shouldRotateSession = false;
+        boolean hasChanges = false;
 
         if (request.username() != null) {
             String normalizedUsername = request.username().trim();
@@ -59,6 +63,7 @@ public class UserController {
                 throw new ResourceAlreadyExistsException("A user with this username already exists.");
             }
             authenticatedUser.setUsername(normalizedUsername);
+            hasChanges = true;
         }
 
         if (request.email() != null) {
@@ -70,15 +75,12 @@ public class UserController {
                 throw new ResourceAlreadyExistsException("A user with this email already exists.");
             }
             authenticatedUser.setEmail(normalizedEmail);
+            hasChanges = true;
         }
 
         if (request.password() != null && !request.password().isBlank()) {
             authenticatedUser.setPassword(passwordEncoder.encode(request.password()));
-            shouldRotateSession = true;
-        }
-
-        if (shouldRotateSession) {
-            sessionRegistryService.rotateSession(authenticatedUser.getId());
+            hasChanges = true;
         }
 
         try {
@@ -86,7 +88,24 @@ public class UserController {
         } catch (DataIntegrityViolationException ex) {
             throw new ResourceAlreadyExistsException("Username or email already in use.");
         }
-        return ResponseEntity.noContent().build();
+
+        String sessionId = hasChanges
+                ? sessionRegistryService.rotateSession(authenticatedUser.getId())
+                : sessionRegistryService.getActiveSession(authenticatedUser.getId());
+        if (sessionId == null || sessionId.isBlank()) {
+            sessionId = sessionRegistryService.rotateSession(authenticatedUser.getId());
+        }
+
+        String jwtToken = jwtService.generateToken(Map.of("sid", sessionId), authenticatedUser);
+        AuthResponse response = AuthResponse.builder()
+                .token(jwtToken)
+                .id(authenticatedUser.getId())
+                .username(resolveEffectiveUsername(authenticatedUser))
+                .email(resolveEffectiveEmail(authenticatedUser))
+                .role(authenticatedUser.getRole())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/me")

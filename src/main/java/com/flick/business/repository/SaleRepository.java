@@ -114,14 +114,33 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
          * @param endDate   The end of the date range.
          * @return The total COGS as a BigDecimal, or 0 if no sales are found.
          */
-        @Query("SELECT COALESCE(SUM(si.quantity * si.product.costPrice), 0) " +
+        @Query("SELECT COALESCE(SUM(si.quantity * COALESCE(si.product.costPrice, si.unitPrice)), 0) " +
                         "FROM SaleItem si " +
                         "WHERE si.sale.saleDate BETWEEN :startDate AND :endDate " +
-                        "AND si.sale.user.id = :userId " +
-                        "AND si.product.costPrice IS NOT NULL")
+                        "AND si.sale.user.id = :userId")
         BigDecimal sumTotalCostOfGoodsSoldBetween(
                         @Param("startDate") ZonedDateTime startDate,
                         @Param("endDate") ZonedDateTime endDate,
                         @Param("userId") Long userId);
+
+        @Query("SELECT COALESCE(SUM(s.totalValue), 0) FROM Sale s " +
+                        "WHERE s.saleDate < :beforeDate " +
+                        "AND s.user.id = :userId " +
+                        "AND s.paymentMethod = :paymentMethod")
+        BigDecimal sumTotalValueBeforeDateByPaymentMethod(
+                        @Param("beforeDate") ZonedDateTime beforeDate,
+                        @Param("userId") Long userId,
+                        @Param("paymentMethod") PaymentMethod paymentMethod);
+
+        @Query("SELECT CAST(s.saleDate AS date), COALESCE(SUM(s.totalValue), 0) FROM Sale s " +
+                        "WHERE s.saleDate BETWEEN :startDate AND :endDate " +
+                        "AND s.user.id = :userId " +
+                        "AND s.paymentMethod = :paymentMethod " +
+                        "GROUP BY CAST(s.saleDate AS date) ORDER BY CAST(s.saleDate AS date)")
+        List<Object[]> sumTotalGroupByDayAndPaymentMethodBetween(
+                        @Param("startDate") ZonedDateTime startDate,
+                        @Param("endDate") ZonedDateTime endDate,
+                        @Param("userId") Long userId,
+                        @Param("paymentMethod") PaymentMethod paymentMethod);
 
 }

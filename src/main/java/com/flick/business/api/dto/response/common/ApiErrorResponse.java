@@ -6,5 +6,6 @@ public record ApiErrorResponse(
         int status,
         String code,
         String message,
-        Map<String, String> errors) {
+        Map<String, String> errors,
+        Long retryAfterSeconds) {
 }

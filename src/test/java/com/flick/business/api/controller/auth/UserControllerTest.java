@@ -4,6 +4,7 @@ import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.security.Role;
 import com.flick.business.repository.security.UserRepository;
 import com.flick.business.service.security.AccountDeletionService;
+import com.flick.business.service.security.JwtService;
 import com.flick.business.service.security.SessionRegistryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,12 @@ import org.springframework.security.web.method.annotation.AuthenticationPrincipa
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,6 +42,8 @@ class UserControllerTest {
     private SessionRegistryService sessionRegistryService;
     @Mock
     private AccountDeletionService accountDeletionService;
+    @Mock
+    private JwtService jwtService;
 
     @BeforeEach
     void setUp() {
@@ -42,7 +51,8 @@ class UserControllerTest {
                 userRepository,
                 passwordEncoder,
                 sessionRegistryService,
-                accountDeletionService);
+                accountDeletionService,
+                jwtService);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(userController)
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
@@ -74,6 +84,46 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.email").value("john@example.com"))
                     .andExpect(jsonPath("$.role").value("USER"))
                     .andExpect(jsonPath("$.password").doesNotExist());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void shouldReturnUpdatedProfileAndTokenWhenUpdatingMyProfile() throws Exception {
+        User authenticatedUser = User.builder()
+                .id(1L)
+                .username("john")
+                .email("john@example.com")
+                .password("$2a$10$hash")
+                .role(Role.USER)
+                .build();
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        authenticatedUser,
+                        null,
+                        authenticatedUser.getAuthorities());
+
+        when(userRepository.existsByUsernameAndIdNot("johnny", 1L)).thenReturn(false);
+        when(sessionRegistryService.rotateSession(1L)).thenReturn("sid-1");
+        when(jwtService.generateToken(eq(Map.of("sid", "sid-1")), any(User.class))).thenReturn("new-token");
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            mockMvc.perform(put("/api/users/me")
+                            .contentType("application/json")
+                            .content("""
+                                    {
+                                      "username": "johnny"
+                                    }
+                                    """))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(1))
+                    .andExpect(jsonPath("$.username").value("johnny"))
+                    .andExpect(jsonPath("$.email").value("john@example.com"))
+                    .andExpect(jsonPath("$.role").value("USER"))
+                    .andExpect(jsonPath("$.token").value("new-token"));
         } finally {
             SecurityContextHolder.clearContext();
         }

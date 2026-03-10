@@ -32,10 +32,10 @@ public class Customer {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 11)
+    @Column(length = 14)
     private String taxId;
 
-    @Column(length = 11)
+    @Column(length = 20)
     private String phone;
 
     @Column(length = 150)

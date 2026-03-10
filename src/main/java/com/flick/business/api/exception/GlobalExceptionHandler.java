@@ -2,6 +2,7 @@ package com.flick.business.api.exception;
 
 import com.flick.business.api.dto.response.common.ApiErrorResponse;
 import com.flick.business.exception.BusinessException;
+import com.flick.business.exception.LoginAttemptsExceededException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
 import com.flick.business.exception.ResourceNotFoundException;
 import jakarta.validation.ConstraintViolationException;
@@ -13,9 +14,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.time.Instant;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -54,13 +58,14 @@ public class GlobalExceptionHandler {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String code = resolveCode(status, ex.getReason());
         String message = ex.getReason() != null ? ex.getReason() : defaultMessageByStatus(status);
-        return buildError(status, code, message, null);
+        Long retryAfterSeconds = resolveRetryAfterSeconds(ex);
+        return buildError(status, code, message, null, retryAfterSeconds);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpectedException(Exception ex) {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
-                "Ocorreu um erro interno. Tente novamente.", null);
+                "Ocorreu um erro interno. Tente novamente.", null, null);
     }
 
     private ResponseEntity<ApiErrorResponse> buildError(
@@ -68,13 +73,30 @@ public class GlobalExceptionHandler {
             String code,
             String rawMessage,
             Map<String, String> errors) {
+        return buildError(status, code, rawMessage, errors, null);
+    }
+
+    private ResponseEntity<ApiErrorResponse> buildError(
+            HttpStatus status,
+            String code,
+            String rawMessage,
+            Map<String, String> errors,
+            Long retryAfterSeconds) {
 
         ApiErrorResponse response = new ApiErrorResponse(
                 status.value(),
                 code,
                 translateMessage(rawMessage),
-                errors);
+                errors,
+                retryAfterSeconds);
         return ResponseEntity.status(status).body(response);
+    }
+
+    private Long resolveRetryAfterSeconds(ResponseStatusException ex) {
+        if (ex instanceof LoginAttemptsExceededException loginAttemptsExceededException) {
+            return loginAttemptsExceededException.getRetryAfterSeconds(Instant.now());
+        }
+        return null;
     }
 
     private String resolveCode(HttpStatus status, String reason) {
@@ -142,6 +164,10 @@ public class GlobalExceptionHandler {
                     "Não é possível desativar um cliente com saldo devedor pendente.";
             case "A customer with this Tax ID already exists in your account." ->
                     "Já existe um cliente com este CPF/CNPJ na sua conta.";
+            case "Tax ID must contain only digits and punctuation." ->
+                    "CPF/CNPJ deve conter apenas números e pontuação.";
+            case "Phone must contain only digits and punctuation." ->
+                    "Telefone deve conter apenas números e pontuação.";
             case "Payment method cannot be ON_CREDIT" ->
                     "Forma de pagamento não pode ser fiado.";
             case "Unauthorized: One or more sales do not belong to your account." ->
@@ -161,7 +187,7 @@ public class GlobalExceptionHandler {
             case "Unable to generate automatic description for restocking expense." ->
                     "Não foi possível gerar a descrição automática da despesa de reposição.";
             case "Cannot delete category as it is currently associated with existing sales." ->
-                    "Não é possível excluir a categoria, pois ela está associada a vendas existentes.";
+                    "Não é possível excluir a categoria, pois ela está associada a vendas ou produtos existentes.";
             default -> null;
         };
 
@@ -211,7 +237,22 @@ public class GlobalExceptionHandler {
             return "Parâmetro groupBy inválido. Valores suportados: day, customer, paymentMethod.";
         }
         if (normalized.startsWith("credit limit exceeded for customer: ")) {
-            return "Limite de crédito excedido para o cliente: " + message.substring("Credit limit exceeded for customer: ".length());
+            String prefix = "Credit limit exceeded for customer: ";
+            String currentSpentToken = ". Current spent: ";
+            String creditLimitToken = ". Credit limit: ";
+
+            int spentIndex = message.indexOf(currentSpentToken);
+            int limitIndex = message.indexOf(creditLimitToken);
+
+            if (spentIndex > 0 && limitIndex > spentIndex) {
+                String customerName = message.substring(prefix.length(), spentIndex);
+                String currentSpent = message.substring(spentIndex + currentSpentToken.length(), limitIndex);
+                String creditLimit = message.substring(limitIndex + creditLimitToken.length());
+                return "Limite de crédito excedido para o cliente: " + customerName
+                        + " (" + formatPtBrAmount(currentSpent) + "/" + formatPtBrAmount(creditLimit) + ").";
+            }
+
+            return "Limite de crédito excedido para o cliente: " + message.substring(prefix.length());
         }
         if (normalized.startsWith("sale with id ") && normalized.endsWith(" does not belong to the customer")) {
             return "Venda com ID " + message.substring("Sale with ID ".length(), message.length() - " does not belong to the customer".length())
@@ -237,6 +278,18 @@ public class GlobalExceptionHandler {
             return "Estoque insuficiente para o produto informado.";
         }
         return null;
+    }
+
+    private String formatPtBrAmount(String value) {
+        try {
+            BigDecimal amount = new BigDecimal(value.trim());
+            NumberFormat formatter = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+            formatter.setMinimumFractionDigits(2);
+            formatter.setMaximumFractionDigits(2);
+            return formatter.format(amount);
+        } catch (RuntimeException ex) {
+            return value;
+        }
     }
 
     private String translatePatternMessages(String message) {
