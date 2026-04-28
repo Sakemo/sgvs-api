@@ -25,7 +25,7 @@ Validar manualmente todos os fluxos expostos pela API (`/api/**`) para garantir 
 3. API em execução:
    - `./mvnw spring-boot:run`
 4. Cliente para testes manuais (Postman/Insomnia/curl).
-5. Coleção com variável `{{baseUrl}}=http://localhost:8080`.
+5. Coleção com variável `{{baseUrl}}=http://localhost:8081`.
 
 ## 4. Convenções de Teste
 - Headers padrão para rotas protegidas:

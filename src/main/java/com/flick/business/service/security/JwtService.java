@@ -3,6 +3,7 @@ package com.flick.business.service.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.flick.business.core.entity.security.User;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
@@ -109,10 +111,19 @@ public class JwtService {
     }
 
     /**
-     * Gets the signing key from the secret key (in Base64).
+     * Gets the signing key from the configured secret key.
      */
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        byte[] keyBytes = resolveSecretKeyBytes();
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private byte[] resolveSecretKeyBytes() {
+        try {
+            return Decoders.BASE64.decode(secretKey);
+        } catch (IllegalArgumentException | DecodingException ex) {
+            // Keep local setup simple: if the secret is not Base64, treat it as a raw string.
+            return secretKey.getBytes(StandardCharsets.UTF_8);
+        }
     }
 }

@@ -10,9 +10,11 @@ Do not commit credentials or JWT secrets in `application.properties`.
 
 ```bash
 export DB_PASSWORD='your-db-password'
-export JWT_SECRET_KEY='a-long-random-secret'
+export JWT_SECRET_KEY='a-long-random-secret-with-at-least-32-characters'
 ./mvnw spring-boot:run
 ```
+
+`JWT_SECRET_KEY` can be either a valid Base64 value for HS256 or a raw secret string with at least 32 characters.
 
 ### **Master Project Document: Simplified Sales & Gestião de Vendas (SGVS)**
 
