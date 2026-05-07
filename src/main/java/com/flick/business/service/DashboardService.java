@@ -38,6 +38,7 @@ public class DashboardService {
                         ExpenseType.BUSINESS,
                         ExpenseType.PERSONAL,
                         ExpenseType.INVESTMENT,
+                        ExpenseType.RESTOCKING,
                         ExpenseType.OTHERS);
 
         private final SaleRepository saleRepository;

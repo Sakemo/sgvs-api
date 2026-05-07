@@ -20,4 +20,20 @@ public class Provider {
 
   @Column(nullable = false, length = 100)
   private String name;
+
+  @Column(nullable = true, length = 255)
+  private String cnpj;
+
+  @Column(nullable = true, length = 255)
+  private String notes;
+
+  @Column(nullable = true, length = 20)
+  private String phone;
+
+  @Column(nullable = true, length = 255)
+  private String email;
+
+  @Column(nullable = true, length = 255)
+  private String address;
+
 }

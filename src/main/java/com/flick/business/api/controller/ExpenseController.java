@@ -48,7 +48,6 @@ public class ExpenseController {
     public ResponseEntity<BigDecimal> getTotalExpenses(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
-        // Este método precisa ser criado no seu ExpenseService
         BigDecimal total = expenseService.calculateTotal(startDate, endDate);
         return ResponseEntity.ok(total);
     }

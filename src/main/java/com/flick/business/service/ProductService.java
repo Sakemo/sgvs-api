@@ -69,7 +69,7 @@ public class ProductService {
     public ProductResponse save(ProductRequest request) {
         User currentUser = authenticatedUserService.getAuthenticatedUser();
         Category category = categoryService.findEntityById(request.categoryId());
-        Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
+        Provider provider = (request.providerId() != null) ? providerService.findEntityById(request.providerId()) : null;
 
         Product product = productMapper.toEntity(request, category, provider);
         product.setUser(currentUser);
@@ -82,7 +82,7 @@ public class ProductService {
         Product existingProduct = findEntityById(id);
 
         Category category = categoryService.findEntityById(request.categoryId());
-        Provider provider = (request.providerId() != null) ? providerService.findById(request.providerId()) : null;
+        Provider provider = (request.providerId() != null) ? providerService.findEntityById(request.providerId()) : null;
 
         productMapper.updateEntityFromRequest(request, existingProduct, category, provider);
         Product updateProduct = productRepository.save(existingProduct);
@@ -90,7 +90,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> listProducts(String name, Long categoryId, String orderBy, int page,
+    public PageResponse<ProductResponse> listProducts(String name, Long categoryId, Long providerId, String orderBy, int page,
             int size) {
         Long userId = authenticatedUserService.getAuthenticatedUserId();
 
@@ -99,9 +99,9 @@ public class ProductService {
             Page<Product> productPage;
 
             if ("mostSold".equalsIgnoreCase(orderBy)) {
-                productPage = productRepository.findAllByMostSold(name, categoryId, userId, pageable);
+                productPage = productRepository.findAllByMostSold(name, categoryId, providerId, userId, pageable);
             } else {
-                productPage = productRepository.findAllByLeastSold(name, categoryId, userId, pageable);
+                productPage = productRepository.findAllByLeastSold(name, categoryId, providerId, userId, pageable);
             }
 
             return new PageResponse<>(productPage.map(ProductResponse::fromEntity));
@@ -110,7 +110,7 @@ public class ProductService {
         Sort sort = createSort(orderBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Specification<Product> spec = ProductSpecification.withFilters(name, categoryId, userId);
+        Specification<Product> spec = ProductSpecification.withFilters(name, categoryId, providerId, userId);
 
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 

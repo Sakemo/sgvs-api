@@ -46,11 +46,12 @@ public class ProductController {
   public ResponseEntity<PageResponse<ProductResponse>> listProducts(
       @RequestParam(required = false) String name,
       @RequestParam(required = false) Long categoryId,
+      @RequestParam(required = false) Long providerId,
       @RequestParam(required = false) String orderBy,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size) {
 
-    PageResponse<ProductResponse> products = productService.listProducts(name, categoryId, orderBy, page, size);
+    PageResponse<ProductResponse> products = productService.listProducts(name, categoryId, providerId, orderBy, page, size);
     return ResponseEntity.ok(products);
   }
 

@@ -22,13 +22,14 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "LEFT JOIN sale_items si ON p.id = si.product_id " +
             "WHERE (:name IS NULL OR lower(p.name) LIKE lower(concat('%', :name, '%'))) " +
             "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
+            "AND (:providerId IS NULL OR p.provider_id = :providerId) " +
             "AND p.user_id = :userId " +
             "GROUP BY p.id " +
             "ORDER BY COALESCE(SUM(si.quantity), 0) DESC", nativeQuery = true)
     Page<Product> findAllByMostSold(
             @Param("name") String name,
-            @Param("categoryId")
-            Long categoryId,
+            @Param("categoryId") Long categoryId,
+            @Param("providerId") Long providerId,
             @Param("userId") Long userId,
             Pageable pageable);
 
@@ -36,17 +37,21 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "LEFT JOIN sale_items si ON p.id = si.product_id " +
             "WHERE (:name IS NULL OR lower(p.name) LIKE lower(concat('%', :name, '%'))) " +
             "AND (:categoryId IS NULL OR p.category_id = :categoryId) " +
+            "AND (:providerId IS NULL OR p.provider_id = :providerId) " +
             "AND p.user_id = :userId " +
             "GROUP BY p.id " +
             "ORDER BY COALESCE(SUM(si.quantity), 0) ASC", nativeQuery = true)
     Page<Product> findAllByLeastSold(
             @Param("name") String name,
             @Param("categoryId") Long categoryId,
+            @Param("providerId") Long providerId,
             @Param("userId") Long userId,
             Pageable pageable);
 
     @Query("SELECT p FROM Product p WHERE p.stockQuantity < p.minimumStock AND p.user.id = :userId")
     List<Product> findLowStockProducts(@Param("userId") Long userId);
+
+    boolean existsByProviderIdAndUserId(Long providerId, Long userId);
 
     @Query("SELECT p.name FROM Product p " +
             "WHERE p.user.id = :userId " +

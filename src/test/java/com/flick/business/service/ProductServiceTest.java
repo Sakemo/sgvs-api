@@ -130,7 +130,7 @@ class ProductServiceTest {
         @DisplayName("should save a new product when request is valid")
         void save_withValidRequest_shouldSaveAndReturnProduct() {
             when(categoryService.findEntityById(1L)).thenReturn(category);
-            when(providerService.findById(1L)).thenReturn(provider);
+            when(providerService.findEntityById(1L)).thenReturn(provider);
             when(productMapper.toEntity(any(), any(), any())).thenReturn(product);
             when(productRepository.save(any(Product.class))).thenReturn(product);
 
@@ -148,7 +148,7 @@ class ProductServiceTest {
         void update_withValidRequest_shouldUpdateProduct() {
             when(productRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(product));
             when(categoryService.findEntityById(1L)).thenReturn(category);
-            when(providerService.findById(1L)).thenReturn(provider);
+            when(providerService.findEntityById(1L)).thenReturn(provider);
             when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
             productService.update(1L, productRequest);
@@ -194,7 +194,7 @@ class ProductServiceTest {
             when(productRepository.findAll(any(Specification.class), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(List.of(product)));
 
-            productService.listProducts("Soda", 1L, "name_asc", 0, 10);
+            productService.listProducts("Soda", 1L, null, "name_asc", 0, 10);
 
             verify(productRepository).findAll(specificationArgumentCaptor.capture(), pageableArgumentCaptor.capture());
 
@@ -208,11 +208,11 @@ class ProductServiceTest {
         void listProducts_whenOrderByMostSold_callsCorrectRepositoryMethod() {
             // Mocking the Paginated result
             Page<Product> emptyPage = Page.empty();
-            when(productRepository.findAllByMostSold(any(), any(), anyLong(), any(Pageable.class))).thenReturn(emptyPage);
+            when(productRepository.findAllByMostSold(any(), any(), any(), anyLong(), any(Pageable.class))).thenReturn(emptyPage);
 
-            productService.listProducts("Soda", 1L, "mostSold", 0, 10);
+            productService.listProducts("Soda", 1L, null, "mostSold", 0, 10);
 
-            verify(productRepository).findAllByMostSold(eq("Soda"), eq(1L), eq(1L), any(Pageable.class));
+            verify(productRepository).findAllByMostSold(eq("Soda"), eq(1L), isNull(), eq(1L), any(Pageable.class));
         }
     }
 

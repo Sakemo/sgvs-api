@@ -188,6 +188,8 @@ public class GlobalExceptionHandler {
                     "Não foi possível gerar a descrição automática da despesa de reposição.";
             case "Cannot delete category as it is currently associated with existing sales." ->
                     "Não é possível excluir a categoria, pois ela está associada a vendas ou produtos existentes.";
+            case "Cannot delete provider as it is currently associated with existing products." ->
+                    "NÃ£o Ã© possÃ­vel excluir o fornecedor, pois ele estÃ¡ vinculado a produtos existentes.";
             default -> null;
         };
 
