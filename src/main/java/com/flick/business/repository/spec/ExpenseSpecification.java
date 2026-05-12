@@ -8,12 +8,13 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;
+import com.flick.business.core.enums.PaymentMethod;
 
 import jakarta.persistence.criteria.Predicate;
 
 public class ExpenseSpecification {
     public static Specification<Expense> withFilters(String name, ZonedDateTime startDate, ZonedDateTime endDate,
-            ExpenseType expenseType, Long userId) {
+            ExpenseType expenseType, PaymentMethod paymentMethod, Long userId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("user").get("id"), userId));
@@ -29,6 +30,9 @@ public class ExpenseSpecification {
             }
             if (expenseType != null) {
                 predicates.add(cb.equal(root.get("expenseType"), expenseType));
+            }
+            if (paymentMethod != null) {
+                predicates.add(cb.equal(root.get("paymentMethod"), paymentMethod));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

@@ -10,6 +10,7 @@ import com.flick.business.core.entity.Product;
 import com.flick.business.core.entity.RestockItem;
 import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.ExpenseType;
+import com.flick.business.core.enums.PaymentMethod;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.ResourceNotFoundException;
 import com.flick.business.repository.ExpenseRepository;
@@ -131,10 +132,11 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ExpenseResponse> listAll(String name, String expenseTypeStr, ZonedDateTime startDate,
+    public PageResponse<ExpenseResponse> listAll(String name, String expenseTypeStr, String paymentMethodStr, ZonedDateTime startDate,
             ZonedDateTime endDate, int page, int size) {
         ExpenseType expenseType = parseExpenseType(expenseTypeStr);
-        Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType, authenticatedUserService.getAuthenticatedUserId());
+        PaymentMethod paymentMethod = parsePaymentMethod(paymentMethodStr);
+        Specification<Expense> spec = ExpenseSpecification.withFilters(name, startDate, endDate, expenseType, paymentMethod, authenticatedUserService.getAuthenticatedUserId());
         Sort sort = Sort.by(Sort.Direction.DESC, "expenseDate");
         Pageable pageable = PageRequest.of(page, size, sort);
 
@@ -146,7 +148,7 @@ public class ExpenseService {
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal calculateTotal(ZonedDateTime startDate, ZonedDateTime endDate) {
+    public BigDecimal calculateTotal(ZonedDateTime startDate, ZonedDateTime endDate, String paymentMethodStr) {
         ZonedDateTime effectiveStartDate = (startDate != null)
                 ? startDate
                 : ZonedDateTime.parse("1900-01-01T00:00:00Z");
@@ -154,6 +156,15 @@ public class ExpenseService {
         ZonedDateTime effectiveEndDate = (endDate != null)
                 ? endDate
                 : ZonedDateTime.parse("9999-12-31T23:59:59Z");
+
+        PaymentMethod paymentMethod = parsePaymentMethod(paymentMethodStr);
+        if (paymentMethod != null) {
+            return expenseRepository.sumTotalValueBetweenDatesAndPaymentMethod(
+                    effectiveStartDate,
+                    effectiveEndDate,
+                    authenticatedUserService.getAuthenticatedUserId(),
+                    paymentMethod);
+        }
 
         return expenseRepository.sumTotalValueBetweenDates(
                 effectiveStartDate,
@@ -186,6 +197,17 @@ public class ExpenseService {
             return ExpenseType.valueOf(typeStr.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Invalid expense type: " + typeStr);
+        }
+    }
+
+    private PaymentMethod parsePaymentMethod(String paymentMethodStr) {
+        if (paymentMethodStr == null || paymentMethodStr.isBlank()) {
+            return null;
+        }
+        try {
+            return PaymentMethod.valueOf(paymentMethodStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid payment method: " + paymentMethodStr);
         }
     }
 

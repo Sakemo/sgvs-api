@@ -2,6 +2,7 @@ package com.flick.business.repository;
 
 import com.flick.business.core.entity.Expense;
 import com.flick.business.core.enums.ExpenseType;
+import com.flick.business.core.enums.PaymentMethod;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -34,6 +35,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
       @Param("startDate") ZonedDateTime startDate,
       @Param("endDate") ZonedDateTime endDate,
       @Param("userId") Long userId);
+
+  @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
+      "AND e.user.id = :userId " +
+      "AND e.paymentMethod = :paymentMethod")
+  BigDecimal sumTotalValueBetweenDatesAndPaymentMethod(
+      @Param("startDate") ZonedDateTime startDate,
+      @Param("endDate") ZonedDateTime endDate,
+      @Param("userId") Long userId,
+      @Param("paymentMethod") PaymentMethod paymentMethod);
 
   @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
       "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +

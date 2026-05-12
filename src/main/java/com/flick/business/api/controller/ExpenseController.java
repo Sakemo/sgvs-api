@@ -35,11 +35,12 @@ public class ExpenseController {
     public ResponseEntity<PageResponse<ExpenseResponse>> listExpenses(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String expenseType,
+            @RequestParam(required = false) String paymentMethod,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        PageResponse<ExpenseResponse> expensesPage = expenseService.listAll(name, expenseType, startDate, endDate, page,
+        PageResponse<ExpenseResponse> expensesPage = expenseService.listAll(name, expenseType, paymentMethod, startDate, endDate, page,
                 size);
         return ResponseEntity.ok(expensesPage);
     }
@@ -47,8 +48,9 @@ public class ExpenseController {
     @GetMapping("/total")
     public ResponseEntity<BigDecimal> getTotalExpenses(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
-        BigDecimal total = expenseService.calculateTotal(startDate, endDate);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate,
+            @RequestParam(required = false) String paymentMethod) {
+        BigDecimal total = expenseService.calculateTotal(startDate, endDate, paymentMethod);
         return ResponseEntity.ok(total);
     }
 
