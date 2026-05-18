@@ -66,7 +66,7 @@ public class CategoryService {
         if (saleRepository.countByCategoryId(id, authenticatedUserService.getAuthenticatedUserId()) > 0) {
             throw new BusinessException("Cannot delete category as it is currently associated with existing sales.");
         }
-
+        
         categoryRepository.delete(category);
     }
 }

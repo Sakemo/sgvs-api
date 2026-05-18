@@ -83,6 +83,10 @@ public class UserController {
             hasChanges = true;
         }
 
+        if(authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found.");
+        }
+
         try {
             userRepository.save(authenticatedUser);
         } catch (DataIntegrityViolationException ex) {
