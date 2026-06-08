@@ -1,105 +1,368 @@
-Backend repo for: (https://github.com/Sakemo/sgvs-ui)[flick-business-frontend]
+# 🏢 SGVS API - Simplified Sales Management System
 
-## Local Secrets
+[![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=flat-square&logo=checkmark)](https://github.com)
+[![Java Version](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=java)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.3-green?style=flat-square&logo=spring-boot)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-blue?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-Do not commit credentials or JWT secrets in `application.properties`.
+---
 
-1. Copy `.env.example` to `.env`.
-2. Set `DB_PASSWORD` and `JWT_SECRET_KEY` with real values.
-3. Export env vars before running the app, for example:
+## 📋 Description
 
-```bash
-export DB_PASSWORD='your-db-password'
-export JWT_SECRET_KEY='a-long-random-secret-with-at-least-32-characters'
-./mvnw spring-boot:run
+**SGVS API** is a robust RESTful backend application built with **Spring Boot** that provides complete management capabilities for sales, inventory, customers, and expenses. Designed to deliver a "CEO experience" with business intelligence, the API integrates real-time inflation tracking and delivers analytical reports to help small and medium-sized businesses optimize their financial operations.
+
+---
+### API Response in Insomnia
+Here's an example of an authenticated request successfully returning a product list:
+
+```
+GET http://localhost:8081/api/v1/products
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+✅ Status: 200 OK
+
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Product A",
+      "sku": "SKU-001",
+      "cost": 50.00,
+      "price": 99.90,
+      "profitMargin": 99.80,
+      "stock": 150,
+      "category": "Electronics"
+    },
+    {
+      "id": 2,
+      "name": "Product B",
+      "sku": "SKU-002",
+      "cost": 30.00,
+      "price": 79.90,
+      "profitMargin": 166.33,
+      "stock": 45
+    }
+  ],
+  "meta": {
+    "total": 2,
+    "page": 0,
+    "limit": 20
+  }
+}
 ```
 
-`JWT_SECRET_KEY` can be either a valid Base64 value for HS256 or a raw secret string with at least 32 characters.
-
-### **Master Project Document: Simplified Sales & Gestião de Vendas (SGVS)**
-
-**Version:** 1.0 (Post-Refactor)
-**Last Updated:** July 28, 2025
-
-#### **1. Introduction & Project Vision**
-
-The **Simplified Sales Management System (SGVS)** is a full-stack web application designed to be a powerful, intuitive, and visually impactful management tool for small to medium-sized businesses. The project's core philosophy extends beyond simple transaction logging to provide the user with a "CEO experience," complete with actionable insights and full control over financial and inventory operations. The software aims to transform raw data into business intelligence, with a sharp focus on cash flow, profitability, and product performance.
-
-Built on a modern and scalable architecture, SGVS utilizes React (Vite + TypeScript) on the frontend and Java (Spring Boot) on the backend, with PostgreSQL for relational data. The application was developed following "MIT-level" principles: clean code, decoupled architecture, robust testing, and an exceptional user experience (UX), including internationalization (i18n), a dark/light theme, and reactive UI components. This document serves as the master roadmap for ongoing development, detailing what has been completed and outlining the next strategic steps.
+> 💡 **Tip:** All responses follow consistent RESTful patterns with appropriate HTTP status codes (200 OK, 400 Bad Request, 401 Unauthorized, 500 Server Error).
 
 ---
 
-### **2. Master Project Roadmap**
+## 🛠 Technologies Used
 
-✅ = Completed | ⏳ = In Progress / Partially Completed | 🎯 = Next Target | ❌ = Not Started
+### **Backend**
+- **Java 21** — Modern language with cutting-edge features
+- **Spring Boot 3.5.3** — Web framework and security
+- **Spring Data JPA** — Object-relational mapping (ORM)
+- **Spring Security + JWT** — Stateless authentication with tokens
+- **OAuth2 Google** — Integrated social login
 
-#### **PHASE 1: Foundation & Architectural Migration (100% ✅)**
+### **Database**
+- **PostgreSQL** — Robust relational database
+- **Hibernate** — ORM for automatic persistence
 
-This phase focused on rebuilding the application from the ground up to establish a high-quality technical foundation.
+### **External Integration**
+- **Google OAuth 2.0** — Authentication via Google
 
-*   ✅ **Backend:** Spring Boot project rebuilt with a clean architecture, 100% in English (packages, classes, methods).
-*   ✅ **Frontend:** React/Vite project rebuilt with a modern architecture, TypeScript, and reusable UI components based on `CVA`.
-*   ✅ **Database:** PostgreSQL schema recreated, 100% in English, managed via `ddl-auto` in development.
-*   ✅ **Essential Features Migrated:**
-    *   **Products:** Full CRUD, filtering, sorting (including "most sold"), copying, and a details drawer.
-    *   **Customers:** Full CRUD, filtering, sorting, a details modal, and confirmation dialogs.
-    *   **Expenses:** Full CRUD, filtering, a details drawer, and a conditional UI for **Restocking Expenses** that updates inventory.
-    *   **Sales:** Full CRUD, filtering, pagination, summary cards (gross, net), and intelligent autocomplete for products and customers.
-    *   **Settings:** Implementation of **Configurable Stock Control** (GLOBAL, PER_ITEM, NONE).
-    *   **Dashboard:** All planned cards and charts are functional and connected to the API.
-*   ✅ **"MIT-Level" UX:**
-    *   Full `i18n` (English/Portuguese).
-    *   Global Toast Notification System with `react-hot-toast`.
-    *   Global Confirmation Modal for critical actions.
-    *   `AdvancedOptions` component to simplify complex forms.
-    *   Application-wide Dark/Light theme.
-*   ✅ **Code Quality:** Comprehensive unit tests for the backend service layer (`Product`, `Sale`, `Customer`, `Expense`).
+### **Tools & Quality**
+- **Maven** — Dependency management and build automation
+- **Lombok** — Reduces boilerplate (getters, setters, constructors)
+- **JUnit 5 + Mockito** — Unit testing with coverage
+- **Docker** — Containerization for deployment
 
 ---
 
-#### **🎯 PHASE 2: Authentication & Multi-User Support (Next Target)**
+## ✨ Key Features
 
-This is the next fundamental step to turn the application into a secure product ready for multiple users.
+### 🔐 **Authentication & Security**
+- ✅ User registration and login with robust validation
+- ✅ JWT authentication with configurable token expiration
+- ✅ Google OAuth 2.0 login with integrated profile
+- ✅ Role-based access control (ADMIN, USER)
 
-*   🎯 **Backend - Spring Security & JWT:**
-    *   **What:** Secure the entire API. Only authenticated users will be able to access the endpoints.
-    *   **How:**
-        1.  Introduce a `User` entity (`username`, `password`, `roles`).
-        2.  Configure Spring Security to use **JWT (JSON Web Tokens)** for stateless authentication.
-        3.  Create authentication endpoints: `POST /api/auth/register` and `POST /api/auth/login`.
-        4.  Implement a JWT filter that validates the token on every request to protected endpoints.
-*   🎯 **Frontend - Login Flow & Protected Routes:**
-    *   **What:** Create the login experience and protect application pages.
-    *   **How:**
-        1.  Create a `LoginPage` and `RegisterPage`.
-        2.  Develop an **`AuthContext`** to manage user state (logged in/out) and the JWT across the application.
-        3.  Implement a `ProtectedRoute` component to wrap routes in `App.tsx`, redirecting unauthenticated users.
-        4.  Update the `apiClient` (request interceptor) to add the `Authorization: Bearer <token>` header to all API calls.
+### 📦 **Product Management**
+- ✅ Complete CRUD operations on products
+- ✅ Automatic **profit margin** calculation
+- ✅ Inventory control (global, per-item, or disabled)
+- ✅ Categorization and unique SKU
+- ✅ ABC report (top-selling products)
+
+### 👥 **Customer Management**
+- ✅ Complete CRUD for customers with contact validation
+- ✅ Advanced filters and pagination
+- ✅ Purchase history tracking
+- ✅ Support for generic customer (sale without specific customer)
+
+### 💰 **Sales Management**
+- ✅ Sales recording with multiple items
+- ✅ Automatic calculation of totals (gross and net)
+- ✅ Per-item discount control
+- ✅ Automatic inventory updates
+- ✅ Sales reports by period
+
+### 💸 **Expense Management**
+- ✅ Registration of operational expenses
+- ✅ Restocking expenses (automatically update inventory)
+- ✅ Expense categorization
+- ✅ Advanced filters and reports
+
+### 📊 **Dashboard & Reports**
+- ✅ Summary metric cards (revenue, profit, inventory)
+- ✅ Sales evolution charts
+- ✅ Product ABC report
+- ✅ Integration with Central Bank inflation indices
+
+### 🌍 **Global Settings**
+- ✅ Inventory control modes (global, per-item, or disabled)
+- ✅ Currency and localization
+- ✅ Business parameters (default margins, etc.)
 
 ---
 
-#### **PHASE 3: Business Intelligence & User "Magic" (20% ⏳)**
+## 🎓 The Process and Learnings
 
-This phase focuses on turning data into even more valuable insights and enhancing user workflows.
+### **The Process**
 
-*   ✅ **`#8` Profit Margin in Product Table:** Completed.
-*   ✅ **`#2` Product ABC Curve Report:** Completed.
-*   ⏳ **`#1` Low Stock Alert:** A notification system for products reaching a minimum stock level.
-*   ⏳ **`#9` Suggested Selling Price:** System-suggested sale price based on cost and a desired profit margin.
-*   ❌ **`#10` Loss Management System:** A feature to record inventory losses (damaged, expired), crucial for accurate Cost of Goods Sold (COGS) calculation.
-*   ❌ **`#3` Credit Aging Control (Accounts Receivable):** A report showing which customers have outstanding debts and for how long.
-*   ❌ **`#4` Daily/Weekly Cash Flow Report:** A report focused on real cash inflows and outflows.
-*   ❌ **`#11` Most Loyal Customers Card:** A dashboard card or report highlighting the most valuable customers.
-*   ⏳ **`#5` Quick Add Product in Sales Form:** The ability to add a new product on-the-fly from the sales form.
-*   ❌ **`#6` Barcode Scanner Integration:** Support for adding items via a device camera or USB barcode scanner.
-*   ❌ **`#12` Restock Button in the Products Table:** A shortcut to initiate a restocking expense directly from the products list.
+We started by designing the database schema based on a real-world sales management business model. The greatest challenge was balancing **ease of use** with **business robustness** — many startups fail because they over-engineer simple things.
+
+The first major milestone was implementing the **Products and Sales** API with precise profit calculations. We faced initial challenges with:
+
+1. **Automatic inventory updates** — We needed to synchronize sales and restocking expenses without creating inconsistencies. Solution: transactions with `@Transactional` in Spring.
+2. **Efficient pagination** — Thousands of records loading slowly. Solution: database indices on PostgreSQL + optimized queries with `@Query` in JPA.
+3. **Inflation integration** — We needed to fetch Central Bank indices but with safe fallback. Solution: scheduled task that updates cache periodically.
+
+### **What I Learned**
+
+This project forced me to deeply understand:
+
+- **Spring Security**: Configuring JWT correctly is non-trivial. I now understand why many projects fail with token leaks.
+- **Transaction Management**: Operations modifying multiple tables require careful isolation. I learned when to use `@Transactional` and isolation levels.
+- **API Design**: Consistent naming, versioning (`/api/v1/`), and standardized responses make ALL the difference in maintainability.
+- **Testing Strategy**: Unit tests in services with Mockito revealed bugs that manual testing never caught, especially in calculation logic.
+- **Infrastructure**: Docker + PostgreSQL in production is different from h2 in tests. I learned about connectionPool, timeout, and real performance.
 
 ---
 
-#### **PHASE 4: Finalization, Infrastructure & Deployment (Future Roadmap)**
+## 🚀 How to Run the Project
+If you just want to **USE** the project, just click on the URL https://sgvs-ui.onrender.com/
 
-*   ❌ **Comprehensive Testing:** Increase backend unit test coverage, implement integration tests with `Testcontainers`, and add UI/component tests on the frontend with `React Testing Library`.
-*   ❌ **Full Containerization:** Create `Dockerfile`s and a `docker-compose.yml` to orchestrate all services (API, UI, PostgreSQL, etc.) with a single command.
-*   ❌ **Database Migration Infrastructure:** Implement **Flyway** to manage database schema changes in a versioned and safe manner.
-*   ❌ **CI/CD & Deployment:** Set up a pipeline (e.g., GitHub Actions) for automated builds, tests, and deployment to a cloud platform (e.g., Azure, AWS).
-*   ⏳ **Final Documentation:** Refine this master document and create an impeccable `README.md` for the repository, complete with diagrams, GIFs, and clear instructions.
+### **TO DEVELOPERS**
+### **Prerequisites**
+
+You'll need to have installed:
+
+- **Java 21+** ([Download](https://www.oracle.com/java/technologies/downloads/))
+- **Maven 3.8+** (usually comes with IDEs like IntelliJ or Eclipse)
+- **PostgreSQL 12+** ([Download](https://www.postgresql.org/download/))
+- **Git** to clone the repository
+
+### **Step 1: Clone the Repository**
+
+```bash
+git clone https://github.com/your-username/sgvs-api.git
+cd sgvs-api
+```
+
+### **Step 2: Configure Environment Variables**
+
+1. Copy the example file:
+```bash
+cp .env.example .env
+```
+
+2. Edit the .env file and set real values:
+
+```env
+# Database
+DB_PASSWORD=your-postgres-password-here
+
+# JWT Secret (generate a random string with at least 32 characters)
+# Tip: use `openssl rand -base64 32` to generate automatically
+JWT_SECRET_KEY=your-random-32-character-minimum-secret-key-here
+```
+
+> ⚠️ **IMPORTANT:** Never commit real passwords! Use environment variables in production.
+
+### **Step 3: Configure PostgreSQL Database**
+
+1. **Create the database:**
+
+```sql
+CREATE DATABASE sgvs_db;
+CREATE USER postgres WITH PASSWORD 'your-postgres-password-here';
+GRANT ALL PRIVILEGES ON DATABASE sgvs_db TO postgres;
+```
+
+2. Or use Docker (recommended):
+
+```bash
+docker run --name sgvs-postgres \
+  -e POSTGRES_PASSWORD=your-password \
+  -e POSTGRES_DB=sgvs_db \
+  -p 5432:5432 \
+  -d postgres:latest
+```
+
+### **Step 4: Export Environment Variables**
+
+On **Linux/macOS:**
+```bash
+export DB_PASSWORD='your-postgres-password-here'
+export JWT_SECRET_KEY='your-random-32-character-minimum-secret-key-here'
+export GOOGLE_CLIENT_ID='your-google-client-id'
+export GOOGLE_CLIENT_SECRET='your-google-client-secret'
+```
+
+On **Windows (PowerShell):**
+```powershell
+$env:DB_PASSWORD = 'your-postgres-password-here'
+$env:JWT_SECRET_KEY = 'your-random-32-character-minimum-secret-key-here'
+$env:GOOGLE_CLIENT_ID = 'your-google-client-id'
+$env:GOOGLE_CLIENT_SECRET = 'your-google-client-secret'
+```
+
+### **Step 5: Run the Application**
+
+```bash
+# With Maven wrapper (recommended)
+./mvnw spring-boot:run
+
+# Or with globally installed Maven
+mvn spring-boot:run
+```
+
+The application will start at: **`http://localhost:8081`**
+
+### **Step 6: Verify It's Running**
+
+```bash
+curl http://localhost:8081/actuator/health
+
+# Expected response:
+# {"status":"UP"}
+```
+
+### **Step 7: Create Your First Account (Optional)**
+
+```bash
+curl -X POST http://localhost:8081/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "your-username",
+    "email": "your-email@example.com",
+    "password": "secure-password-here"
+  }'
+```
+
+---
+
+## 🔌 Environment Variables (.env.example)
+
+The .env.example file is already included in the repository. Copy and configure:
+
+```env
+# Database
+DB_PASSWORD=your-secure-password-here
+
+# JWT Security
+# Generate with: openssl rand -base64 32
+JWT_SECRET_KEY=your-32-character-minimum-secret-key-here
+
+# (Optional) Google OAuth
+# GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=your-client-secret
+# GOOGLE_REDIRECT_URI=http://localhost:8081/api/auth/google/callback
+```
+
+---
+
+## 📦 Build & Deploy
+
+### **Build for Production**
+
+```bash
+mvn clean package -DskipTests
+```
+
+This generates an executable JAR in `target/sgvs-api-0.0.1-SNAPSHOT.jar`.
+
+### **Run the JAR**
+
+```bash
+java -jar target/sgvs-api-0.0.1-SNAPSHOT.jar
+```
+
+### **With Docker**
+
+```bash
+docker build -t sgvs-api:latest .
+docker run -p 8081:8081 \
+  -e DB_PASSWORD='your-password' \
+  -e JWT_SECRET_KEY='your-secret' \
+  sgvs-api:latest
+```
+
+---
+
+## 🧪 Testing
+
+Run unit tests:
+
+```bash
+# Run all tests
+mvn test
+
+# Run with coverage
+mvn test jacoco:report
+```
+
+Tests cover main services: `ProductService`, `SaleService`, `CustomerService`, `ExpenseService`.
+
+---
+
+## 📚 Documentation & Resources
+
+- **API Docs:** [Swagger UI] (coming soon)
+- **Roadmap:** See README.md for complete phases
+- **Project Structure:**
+  - controller — REST Controllers
+  - `src/main/java/com/flick/business/core/service/` — Business logic
+  - entity — JPA Entities
+  - repository — Data access
+
+---
+
+## 🤝 Contributing
+
+This is a portfolio project. If you find bugs or have suggestions, open an **issue** or **pull request**.
+
+---
+
+## 📄 License
+
+This project is under the **MIT** license. See the LICENSE file for details.
+
+---
+
+## 👨‍💻 Author
+
+Developed with ❤️ as a modern full-stack business management project.
+
+**Frontend (React + Vite):** [sgvs-ui](https://github.com/your-username/sgvs-ui)
+
+---
+
+## 🔗 Useful Links
+
+- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
+- [PostgreSQL](https://www.postgresql.org/)
+- [JWT.io](https://jwt.io/)
+```
