@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.flick.business.api.dto.auth.AuthResponse;
 import com.flick.business.api.dto.auth.LoginRequest;
 import com.flick.business.api.dto.auth.RegisterRequest;
+import com.flick.business.api.dto.auth.GoogleLoginRequest;
 import com.flick.business.service.security.AuthenticationService;
 
 import jakarta.validation.Valid;
@@ -39,6 +40,17 @@ public class AuthController {
    @PostMapping("/login")
    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
        return ResponseEntity.ok(authenticationService.login(request));
+   }
+
+   /**
+    * Endpoint for Google OAuth login
+    * @param request The Google login data containing the ID token
+    * @return A response containing the JWT upon successful authentication
+    */
+   @PostMapping("/google")
+   public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+       AuthResponse response = authenticationService.googleLogin(request.getIdToken());
+       return ResponseEntity.ok(response);
    }
    
 }

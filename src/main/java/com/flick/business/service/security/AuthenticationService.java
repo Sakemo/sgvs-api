@@ -3,6 +3,7 @@ package com.flick.business.service.security;
 import com.flick.business.api.dto.auth.AuthResponse;
 import com.flick.business.api.dto.auth.LoginRequest;
 import com.flick.business.api.dto.auth.RegisterRequest;
+import com.flick.business.api.dto.auth.GoogleTokenPayload;
 import com.flick.business.core.entity.GeneralSettings;
 import com.flick.business.core.entity.security.User;
 import com.flick.business.core.enums.security.Role;
@@ -10,6 +11,7 @@ import com.flick.business.core.enums.settings.StockControlType;
 import com.flick.business.exception.BusinessException;
 import com.flick.business.exception.LoginAttemptsExceededException;
 import com.flick.business.exception.ResourceAlreadyExistsException;
+import com.flick.business.exception.InvalidTokenException;
 import com.flick.business.repository.GeneralSettingsRepository;
 import com.flick.business.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,6 +49,7 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final SessionRegistryService sessionRegistryService;
     private final AuthenticationManager authenticationManager;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     /**
      * Registers a new user in the system.
@@ -135,6 +139,127 @@ public class AuthenticationService {
                 .email(resolveEffectiveEmail(user))
                 .role(user.getRole())
                 .build();
+    }
+
+    /**
+     * Autentica um usuário usando ID token do Google (OAuth 2.0)
+     *
+     * @param idToken O ID token fornecido pelo Google
+     * @return Um AuthResponse contendo o JWT para o usuário
+     * @throws InvalidTokenException Se o token for inválido ou expirado
+     * @throws LoginAttemptsExceededException Se o usuário exceder o limite de tentativas
+     */
+    @Transactional
+    public AuthResponse googleLogin(String idToken) {
+        // 1. Validar token com Google
+        GoogleTokenPayload tokenPayload = googleTokenVerifier.verifyToken(idToken);
+        String email = tokenPayload.getEmail().toLowerCase();
+
+        // 2. Aplicar rate limiting baseado no email
+        checkRateLimit(email);
+
+        try {
+            // 3. Procurar usuário existente por email
+            User user = userRepository.findByUsernameOrEmail(email, email)
+                    .orElseGet(() -> createGoogleUser(tokenPayload));
+
+            // 4. Atualizar dados do Google se não existiam
+            boolean userUpdated = false;
+            if (user.getGoogleId() == null) {
+                user.setGoogleId(tokenPayload.getGoogleId());
+                userUpdated = true;
+            }
+            if (user.getGoogleProfilePicture() == null && tokenPayload.getPicture() != null) {
+                user.setGoogleProfilePicture(tokenPayload.getPicture());
+                userUpdated = true;
+            }
+            user.setGoogleLoginDate(LocalDateTime.now());
+            userUpdated = true;
+
+            if (userUpdated) {
+                userRepository.save(user);
+            }
+
+            // 5. Limpar tentativas falhadas
+            resetFailedAttempts(email);
+
+            // 6. Gerar JWT
+            String sessionId = sessionRegistryService.rotateSession(user.getId());
+            var jwtToken = jwtService.generateToken(Map.of("sid", sessionId), user);
+
+            return AuthResponse.builder()
+                    .token(jwtToken)
+                    .id(user.getId())
+                    .username(resolveEffectiveUsername(user))
+                    .email(resolveEffectiveEmail(user))
+                    .role(user.getRole())
+                    .build();
+
+        } catch (Exception e) {
+            if (e instanceof InvalidTokenException || e instanceof LoginAttemptsExceededException) {
+                throw e;
+            }
+            // Registrar tentativa falhada para rate limiting
+            registerFailedAttempt(email);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, 
+                "Erro ao processar autenticação com Google");
+        }
+    }
+
+    /**
+     * Cria um novo usuário a partir dos dados do Google
+     */
+    private User createGoogleUser(GoogleTokenPayload tokenPayload) {
+        String email = tokenPayload.getEmail().toLowerCase();
+        
+        // Gerar username a partir do email ou name
+        String username = tokenPayload.getName() != null && !tokenPayload.getName().isBlank() 
+            ? normalizeUsername(tokenPayload.getName())
+            : normalizeUsername(email.substring(0, email.indexOf('@')));
+
+        // Garantir unicidade do username
+        String finalUsername = username;
+        int counter = 1;
+        while (userRepository.existsByUsername(finalUsername)) {
+            finalUsername = username + counter;
+            counter++;
+        }
+
+        var user = User.builder()
+                .username(finalUsername)
+                .email(email)
+                .password(passwordEncoder.encode(generateRandomPassword())) // Sem password real para usuários Google
+                .role(Role.USER)
+                .googleId(tokenPayload.getGoogleId())
+                .googleProfilePicture(tokenPayload.getPicture())
+                .googleLoginDate(LocalDateTime.now())
+                .build();
+
+        User savedUser = userRepository.save(user);
+        ensureDefaultSettings(savedUser);
+
+        return savedUser;
+    }
+
+    /**
+     * Normaliza um nome para username (remove espaços, converte para lowercase)
+     */
+    private String normalizeUsername(String input) {
+        if (input == null || input.isBlank()) {
+            return "user";
+        }
+        return input.toLowerCase()
+                .replaceAll("[^a-z0-9._]", "")
+                .replaceAll("^\\.+|\\.+$", "") // Remove pontos no início/fim
+                .replaceAll("\\.{2,}", ".") // Remove múltiplos pontos
+                .replaceAll("_{2,}", "_"); // Remove múltiplos underscores
+    }
+
+    /**
+     * Gera uma senha aleatória para usuários criados via Google (nunca será usada)
+     */
+    private String generateRandomPassword() {
+        return java.util.UUID.randomUUID().toString() + java.util.UUID.randomUUID().toString();
     }
 
     private void validateNormalizedRegistrationInput(String username, String email, String password) {

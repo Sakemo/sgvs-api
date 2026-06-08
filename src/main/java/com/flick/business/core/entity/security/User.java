@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -42,6 +43,15 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(unique = true)
+    private String googleId;
+
+    @Column(name = "google_profile_picture")
+    private String googleProfilePicture;
+
+    @Column(name = "google_login_date")
+    private LocalDateTime googleLoginDate;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
