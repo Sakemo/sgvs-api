@@ -15,6 +15,8 @@ import com.flick.business.exception.InvalidTokenException;
 import com.flick.business.repository.GeneralSettingsRepository;
 import com.flick.business.repository.security.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cglib.core.Local;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -260,6 +263,70 @@ public class AuthenticationService {
      */
     private String generateRandomPassword() {
         return java.util.UUID.randomUUID().toString() + java.util.UUID.randomUUID().toString();
+    }
+
+    // Normalize E-mail
+    public String normalizeEmail(String email){
+        if(email == null || email.trim().isEmpty()){
+            return "Invalid Email";
+        }
+
+        email = email.toLowerCase().trim();
+        String[] splits = email.split("@");
+        if(splits.length != 2){
+            return email;
+        }
+
+        String localPart = splits[0];
+        String domain = splits[1];
+
+        if(domain == "gmail.com"){
+            localPart = localPart.replace(".", "");
+
+            int plusIndex = localPart.indexOf("+");
+            if (plusIndex >= 0){
+                localPart = localPart.substring(plusIndex);
+            }
+        }
+
+        String normalizedEmail = localPart + "@" + domain;
+        return normalizedEmail;
+    }
+
+    // Create Code
+    public String createCode(int size){
+        SecureRandom random = new SecureRandom();
+
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder codeBuilder = new StringBuilder(size);
+
+        for(int i=0; i<size; i++){
+            int index = random.nextInt(characters.length());
+            codeBuilder.append(characters.charAt(index));
+        }
+
+        String code = codeBuilder.toString();
+        return code;
+    }
+
+    public void requestPasswordReset(String email) {
+        LocalDateTime request = LocalDateTime.now();
+        LocalDateTime expiration = request.plusMinutes(10);
+
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+        if (user == null) {
+            throw new BusinessException("User not found with the provided email.");
+        }
+        String code = createCode(6);
+
+        user.setPasswordResetCode(code);
+        user.setPasswordResetRequestedAt(request);
+        user.setPasswordResetCodeExpiresAt(expiration);
+        user.setPasswordResetAttempts(0);
+        userRepository.save(user);
+
+        // envia o código por email
     }
 
     private void validateNormalizedRegistrationInput(String username, String email, String password) {

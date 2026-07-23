@@ -14,10 +14,9 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/customers") // << Path em inglês
+@RequestMapping("/api/customers")
 @RequiredArgsConstructor
 public class CustomerController {
-
     private final CustomerService customerService;
 
     @PostMapping

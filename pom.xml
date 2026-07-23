@@ -107,7 +107,12 @@
 			<groupId>com.google.auth</groupId>
 			<artifactId>google-auth-library-oauth2-http</artifactId>
 			<version>1.11.0</version>
-		</dependency>	</dependencies>
+		</dependency>	
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>	
+	</dependencies>
 
 	<build>
 		<plugins>

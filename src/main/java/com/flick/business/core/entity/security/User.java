@@ -68,7 +68,21 @@ public class User implements UserDetails {
         return username;
     }
 
-    // --- Métodos de controle da conta (por agora, todos retornam true) ---
+    // Recover password
+    @Column(name = "password_reset_code")
+    private String passwordResetCode;
+
+    @Column(name = "password_reset_code_expires_at")
+    private LocalDateTime passwordResetCodeExpiresAt;
+
+    @Column(name = "password_reset_attempts")
+    private Integer passwordResetAttempts = 0;
+
+    @Column(name = "password_reset_code_used")
+    private Boolean passwordResetCodeUsed = false;
+
+    @Column(name = "password_reset_requested_at")
+    private LocalDateTime passwordResetRequestedAt;
 
     @Override
     public boolean isAccountNonExpired() {
