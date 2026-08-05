@@ -1,5 +1,11 @@
 # Flick Business — Architecture
 
+### Design Philosophy
+Flick Business was designed around a simple principle:
+Small businesses should not adapt to software. Software should adapt to small businesses.
+Every feature was designed after observing real-world workflows inside a family-owned business where notebooks and paper records were still part of daily operations.
+Instead of replicating enterprise ERP systems, Flick Business focuses on reducing friction while preserving the simplicity that small business owners value.
+
 ## 1. Overview
 
 Flick Business is a full-stack business management system designed to replace paper notebooks, loose notes, and manual cash-control practices in small businesses.
