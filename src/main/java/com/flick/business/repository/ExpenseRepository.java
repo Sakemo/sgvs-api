@@ -49,6 +49,35 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
   @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
       "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
       "AND e.user.id = :userId " +
+      "AND e.paymentMethod = :paymentMethod " +
+      "AND e.paid = false")
+  BigDecimal sumTotalUnpaidByPaymentMethodBetweenDates(
+      @Param("startDate") ZonedDateTime startDate,
+      @Param("endDate") ZonedDateTime endDate,
+      @Param("userId") Long userId,
+      @Param("paymentMethod") PaymentMethod paymentMethod);
+
+  @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.user.id = :userId " +
+      "AND e.paymentMethod = :paymentMethod " +
+      "AND e.paid = false")
+  BigDecimal sumTotalUnpaidByPaymentMethod(
+      @Param("userId") Long userId,
+      @Param("paymentMethod") PaymentMethod paymentMethod);
+
+  @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.expenseDate <= :endDate " +
+      "AND e.user.id = :userId " +
+      "AND e.paymentMethod = :paymentMethod " +
+      "AND e.paid = false")
+  BigDecimal sumTotalUnpaidByPaymentMethodUpToDate(
+      @Param("endDate") ZonedDateTime endDate,
+      @Param("userId") Long userId,
+      @Param("paymentMethod") PaymentMethod paymentMethod);
+
+  @Query("SELECT COALESCE(SUM(e.value), 0) FROM Expense e " +
+      "WHERE e.expenseDate BETWEEN :startDate AND :endDate " +
+      "AND e.user.id = :userId " +
       "AND e.expenseType IN :types")
   BigDecimal sumTotalValueBetweenDatesByTypes(
       @Param("startDate") ZonedDateTime startDate,

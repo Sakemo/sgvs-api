@@ -11,6 +11,7 @@ public record DashboardResponse(
         MetricCardData netProfit,
         MetricCardData totalExpense,
         MetricCardData totalReceivables,
+        MetricCardData totalAccountsPayable,
         MetricCardData averageTicket,
         List<ChartDataPoint> salesByPaymentMethod,
         List<ChartDataPoint> topSellingProducts,

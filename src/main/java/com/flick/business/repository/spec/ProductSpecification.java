@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductSpecification {
-  public static Specification<Product> withFilters(String name, Long categoryId, Long providerId, Long userId) {
+  public static Specification<Product> withFilters(String searchTerm, Long categoryId, Long providerId, Long userId) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
       if (query != null) {
@@ -15,9 +15,12 @@ public class ProductSpecification {
       }
       predicates.add(criteriaBuilder.equal(root.get("user").get("id"), userId));
 
-      if (name != null && !name.trim().isEmpty()) {
-        predicates.add(
-            criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+      if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+        String normalizedSearch = "%" + searchTerm.trim().toLowerCase() + "%";
+        Predicate namePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), normalizedSearch);
+        Predicate barcodePredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("barcode")), normalizedSearch);
+        Predicate categoryPredicate = criteriaBuilder.like(criteriaBuilder.lower(root.get("category").get("name")), normalizedSearch);
+        predicates.add(criteriaBuilder.or(namePredicate, barcodePredicate, categoryPredicate));
       }
 
       if (categoryId != null) {

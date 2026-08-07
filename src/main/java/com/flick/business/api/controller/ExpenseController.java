@@ -1,5 +1,6 @@
 package com.flick.business.api.controller;
 
+import com.flick.business.api.dto.request.commercial.ExpensePaymentRequest;
 import com.flick.business.api.dto.request.commercial.ExpenseRequest;
 import com.flick.business.api.dto.response.commercial.ExpenseResponse;
 import com.flick.business.api.dto.response.common.PageResponse;
@@ -52,6 +53,21 @@ public class ExpenseController {
             @RequestParam(required = false) String paymentMethod) {
         BigDecimal total = expenseService.calculateTotal(startDate, endDate, paymentMethod);
         return ResponseEntity.ok(total);
+    }
+
+    @GetMapping("/accounts-payable")
+    public ResponseEntity<BigDecimal> getAccountsPayable(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime endDate) {
+        BigDecimal accountsPayable = expenseService.calculateAccountsPayable(startDate, endDate);
+        return ResponseEntity.ok(accountsPayable);
+    }
+
+    @PutMapping("/{id}/settle")
+    public ResponseEntity<ExpenseResponse> settleExpense(@PathVariable Long id,
+                                                         @Valid @RequestBody ExpensePaymentRequest request) {
+        ExpenseResponse expense = expenseService.settleExpense(id, request);
+        return ResponseEntity.ok(expense);
     }
 
     @GetMapping("/{id}")

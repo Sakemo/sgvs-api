@@ -67,6 +67,11 @@ public class DashboardService {
                 BigDecimal previousTotalExpenses = expenseRepository.sumTotalValueBetweenDatesByTypes(
                                 previousStartDate, previousEndDate, userId, DASHBOARD_EXPENSE_TYPES);
 
+                BigDecimal currentUnpaidCreditExpenses = expenseRepository.sumTotalUnpaidByPaymentMethodUpToDate(
+                                endDate, userId, PaymentMethod.ON_CREDIT);
+                BigDecimal previousUnpaidCreditExpenses = expenseRepository.sumTotalUnpaidByPaymentMethodUpToDate(
+                                previousEndDate, userId, PaymentMethod.ON_CREDIT);
+
                 List<Object[]> salesByPaymentMethodRaw = saleRepository.sumTotalGroupByPaymentMethodBetween(startDate,
                                 endDate, userId);
                 List<Object[]> topSellingProductsRaw = saleItemRepository.findTop10SellingProductsByRevenue(startDate,
@@ -99,10 +104,14 @@ public class DashboardService {
                 MetricCardData averageTicketCard = buildMetricCard(currentAverageTicket, previousAverageTicket);
 
                 MetricCardData grossRevenueCard = buildMetricCard(currentGrossRevenue, previousGrossRevenue);
-                MetricCardData totalExpensesCard = buildMetricCard(currentTotalExpenses, previousTotalExpenses);
+                BigDecimal netCurrentTotalExpenses = currentTotalExpenses.subtract(currentUnpaidCreditExpenses);
+                BigDecimal netPreviousTotalExpenses = previousTotalExpenses.subtract(previousUnpaidCreditExpenses);
 
-                BigDecimal currentNetProfit = currentGrossRevenue.subtract(currentTotalExpenses);
-                BigDecimal previousNetProfit = previousGrossRevenue.subtract(previousTotalExpenses);
+                MetricCardData totalExpensesCard = buildMetricCard(netCurrentTotalExpenses, netPreviousTotalExpenses);
+                MetricCardData accountsPayableCard = buildMetricCard(currentUnpaidCreditExpenses, previousUnpaidCreditExpenses);
+
+                BigDecimal currentNetProfit = currentGrossRevenue.subtract(netCurrentTotalExpenses);
+                BigDecimal previousNetProfit = previousGrossRevenue.subtract(netPreviousTotalExpenses);
                 MetricCardData netProfitCard = buildMetricCard(currentNetProfit, previousNetProfit);
 
                 Map<String, BigDecimal> revenueByDate = revenueTrendRaw.stream()
@@ -171,6 +180,7 @@ public class DashboardService {
                                 netProfitCard,
                                 totalExpensesCard,
                                 totalReceivablesCard,
+                                accountsPayableCard,
                                 averageTicketCard,
                                 salesByPaymentMethod,
                                 topSellingProducts,

@@ -1,5 +1,6 @@
 package com.flick.business.service;
 
+import com.flick.business.api.dto.request.commercial.ExpensePaymentRequest;
 import com.flick.business.api.dto.request.commercial.ExpenseRequest;
 import com.flick.business.api.dto.response.commercial.ExpenseResponse;
 import com.flick.business.api.dto.response.common.PageResponse;
@@ -53,6 +54,7 @@ public class ExpenseService {
         expense.setExpenseType(request.expenseType());
         expense.setPaymentMethod(request.paymentMethod());
         expense.setDescription(request.description());
+        expense.setPaid(request.paymentMethod() != PaymentMethod.ON_CREDIT);
 
         if (request.expenseType() == ExpenseType.RESTOCKING) {
             processRestockingExpense(expense, request);
@@ -116,6 +118,7 @@ public class ExpenseService {
         User currentUser = authenticatedUserService.getAuthenticatedUser();
         Expense expense = expenseMapper.toEntity(request);
         expense.setUser(currentUser);
+        expense.setPaid(expense.getPaymentMethod() != PaymentMethod.ON_CREDIT);
         Expense savedExpense = expenseRepository.save(expense);
         return ExpenseResponse.fromEntity(savedExpense);
     }
@@ -124,6 +127,7 @@ public class ExpenseService {
     public ExpenseResponse update(Long id, ExpenseRequest request) {
         Expense existingExpense = findEntityById(id);
         expenseMapper.updateEntityFromRequest(request, existingExpense);
+        existingExpense.setPaid(existingExpense.getPaymentMethod() != PaymentMethod.ON_CREDIT);
         if (existingExpense.getExpenseType() == ExpenseType.RESTOCKING) {
             applyAutomaticRestockingMetadata(existingExpense);
         }
@@ -166,10 +170,54 @@ public class ExpenseService {
                     paymentMethod);
         }
 
-        return expenseRepository.sumTotalValueBetweenDates(
+        BigDecimal totalExpenses = expenseRepository.sumTotalValueBetweenDates(
                 effectiveStartDate,
                 effectiveEndDate,
                 authenticatedUserService.getAuthenticatedUserId());
+
+        BigDecimal unpaidCreditExpenses = expenseRepository.sumTotalUnpaidByPaymentMethodBetweenDates(
+                effectiveStartDate,
+                effectiveEndDate,
+                authenticatedUserService.getAuthenticatedUserId(),
+                PaymentMethod.ON_CREDIT);
+
+        return totalExpenses.subtract(unpaidCreditExpenses);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal calculateAccountsPayable(ZonedDateTime startDate, ZonedDateTime endDate) {
+        if (endDate != null) {
+            return expenseRepository.sumTotalUnpaidByPaymentMethodUpToDate(
+                    endDate,
+                    authenticatedUserService.getAuthenticatedUserId(),
+                    PaymentMethod.ON_CREDIT);
+        }
+        return expenseRepository.sumTotalUnpaidByPaymentMethod(
+                authenticatedUserService.getAuthenticatedUserId(),
+                PaymentMethod.ON_CREDIT);
+    }
+
+    @Transactional
+    public ExpenseResponse settleExpense(Long id, ExpensePaymentRequest request) {
+        Expense expense = findEntityById(id);
+
+        if (expense.getPaymentMethod() != PaymentMethod.ON_CREDIT) {
+            throw new BusinessException("Only ON_CREDIT expenses can be settled.");
+        }
+        if (expense.isPaid()) {
+            throw new BusinessException("Expense has already been settled.");
+        }
+        if (request.paymentMethod() == PaymentMethod.ON_CREDIT) {
+            throw new BusinessException("Payment method cannot be ON_CREDIT when settling a credit expense.");
+        }
+
+        expense.setPaid(true);
+        expense.setSettlementPaymentMethod(request.paymentMethod());
+        expense.setSettlementCashReference(request.cashReferenceNumber());
+        expense.setPaidAt(ZonedDateTime.now());
+
+        Expense settledExpense = expenseRepository.save(expense);
+        return ExpenseResponse.fromEntity(settledExpense);
     }
 
     @Transactional(readOnly = true)

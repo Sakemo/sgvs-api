@@ -53,6 +53,19 @@ public class Expense {
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Column(nullable = false)
+    private boolean paid = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "settlement_payment_method")
+    private PaymentMethod settlementPaymentMethod;
+
+    @Column(name = "settlement_cash_reference", length = 100)
+    private String settlementCashReference;
+
+    @Column(name = "paid_at")
+    private ZonedDateTime paidAt;
+
     @Column(length = 500)
     private String description;
 

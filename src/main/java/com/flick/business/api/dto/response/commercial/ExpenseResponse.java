@@ -14,6 +14,10 @@ public record ExpenseResponse(
         ZonedDateTime expenseDate,
         ExpenseType expenseType,
         PaymentMethod paymentMethod,
+        boolean paid,
+        PaymentMethod settlementPaymentMethod,
+        String settlementCashReference,
+        ZonedDateTime paidAt,
         String description,
         ZonedDateTime createdAt,
         ZonedDateTime updatedAt) {
@@ -25,6 +29,10 @@ public record ExpenseResponse(
                 expense.getExpenseDate(),
                 expense.getExpenseType(),
                 expense.getPaymentMethod(),
+                expense.isPaid(),
+                expense.getSettlementPaymentMethod(),
+                expense.getSettlementCashReference(),
+                expense.getPaidAt(),
                 expense.getDescription(),
                 expense.getCreatedAt(),
                 expense.getUpdatedAt());
