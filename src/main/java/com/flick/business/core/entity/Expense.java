@@ -53,6 +53,7 @@ public class Expense {
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean paid = false;
 

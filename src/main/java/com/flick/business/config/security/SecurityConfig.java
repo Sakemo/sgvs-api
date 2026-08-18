@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -51,7 +52,7 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     List<String> origins = Arrays.stream(allowedOrigins.split(","))
-        .map(String::trim)
+        .map(origin -> Objects.requireNonNull(origin.trim()))
         .filter(origin -> !origin.isBlank())
         .collect(Collectors.toList());
     configuration.setAllowedOrigins(origins);

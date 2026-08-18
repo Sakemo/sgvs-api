@@ -43,8 +43,7 @@ public class ApplicationConfig {
     public AuthenticationProvider authenticationProvider() {
         // DaoAuthenticationProvider is Spring's default implementation for
         // database-based authentication.
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService()); // Sets how to fetch the user.
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService());
         authProvider.setPasswordEncoder(passwordEncoder()); // Sets how to verify the password.
         return authProvider;
     }

@@ -75,9 +75,11 @@ public class User implements UserDetails {
     @Column(name = "password_reset_code_expires_at")
     private LocalDateTime passwordResetCodeExpiresAt;
 
+    @Builder.Default
     @Column(name = "password_reset_attempts")
     private Integer passwordResetAttempts = 0;
 
+    @Builder.Default
     @Column(name = "password_reset_code_used")
     private Boolean passwordResetCodeUsed = false;
 

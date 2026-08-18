@@ -285,7 +285,7 @@ public class GlobalExceptionHandler {
     private String formatPtBrAmount(String value) {
         try {
             BigDecimal amount = new BigDecimal(value.trim());
-            NumberFormat formatter = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+            NumberFormat formatter = NumberFormat.getNumberInstance(Locale.of("pt", "BR"));
             formatter.setMinimumFractionDigits(2);
             formatter.setMaximumFractionDigits(2);
             return formatter.format(amount);

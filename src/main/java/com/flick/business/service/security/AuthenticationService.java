@@ -154,19 +154,14 @@ public class AuthenticationService {
      */
     @Transactional
     public AuthResponse googleLogin(String idToken) {
-        // 1. Validar token com Google
         GoogleTokenPayload tokenPayload = googleTokenVerifier.verifyToken(idToken);
         String email = tokenPayload.getEmail().toLowerCase();
-
-        // 2. Aplicar rate limiting baseado no email
         checkRateLimit(email);
 
         try {
-            // 3. Procurar usuário existente por email
             User user = userRepository.findByUsernameOrEmail(email, email)
                     .orElseGet(() -> createGoogleUser(tokenPayload));
 
-            // 4. Atualizar dados do Google se não existiam
             boolean userUpdated = false;
             if (user.getGoogleId() == null) {
                 user.setGoogleId(tokenPayload.getGoogleId());
